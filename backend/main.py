@@ -16,6 +16,9 @@ from pydantic import BaseModel, HttpUrl, field_validator
 
 from config import settings
 from database import init_db, save_analysis
+from parsers.cuda_detector import detect_cuda
+from parsers.dependencies import extract_dependencies
+from parsers.docker_analyzer import analyze_docker_files
 from scanner.indexer import index_repository
 
 app = FastAPI(title="AMD Port Studio API", version="0.1.0")
@@ -169,16 +172,25 @@ def clone_repository(github_url: str, target_dir: Path) -> Path:
         raise
 
 
-def mock_migration_analysis(repo_name: str, scan: dict) -> dict:
+def mock_migration_analysis(
+    repo_name: str,
+    scan: dict,
+    findings: dict | None = None,
+) -> dict:
+    summary_extra = ""
+    if findings:
+        cs = findings["cuda"]["summary"]
+        summary_extra = (
+            f" Detected {cs['api_hit_count']} CUDA API hits and "
+            f"{cs['cu_file_count']} .cu source files. "
+            "Compatibility scoring arrives on Day 4."
+        )
     return {
         "migrationDifficulty": "Medium",
         "estimatedHours": 8,
         "riskLevel": "Moderate",
         "compatibilityScore": 72,
-        "summary": (
-            f"Stub analysis for {repo_name}. "
-            "Day 1 vertical slice is working. Real CUDA and ROCm rules come on Days 3–4."
-        ),
+        "summary": f"Stub migration advisor for {repo_name}.{summary_extra}",
         "unsupportedLibraries": ["tensorrt"],
         "recommendedAlternatives": ["ONNX Runtime ROCm"],
         "migrationSteps": [
@@ -219,6 +231,15 @@ def analyze(request: AnalyzeRequest):
         all_files = scan["files"]
         scan["files_full"] = all_files
 
+        dependencies = extract_dependencies(repo_path)
+        cuda = detect_cuda(repo_path, indexed_files=all_files)
+        docker = analyze_docker_files(repo_path)
+        findings = {
+            "dependencies": dependencies,
+            "cuda": cuda,
+            "docker": docker,
+        }
+
         analysis_id = save_analysis(
             Path(settings.database_path),
             slug,
@@ -242,7 +263,8 @@ def analyze(request: AnalyzeRequest):
                 "files": scan_for_response["files"],
                 "sample_files": scan["sample_files"],
             },
-            "analysis": mock_migration_analysis(slug, scan),
+            "findings": findings,
+            "analysis": mock_migration_analysis(slug, scan, findings),
         }
     except GitCommandError as exc:
         raise HTTPException(

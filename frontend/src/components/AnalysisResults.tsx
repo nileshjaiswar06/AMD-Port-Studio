@@ -46,7 +46,10 @@ function riskVariant(risk: string): "default" | "warning" | "danger" | "success"
 }
 
 export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
-  const { repository, analysis } = data;
+  const { repository, analysis, findings } = data;
+  const cudaSummary = findings.cuda.summary;
+  const cuFilesPreview = findings.cuda.cu_files.slice(0, 20);
+  const cuFilesRemaining = findings.cuda.cu_files.length - cuFilesPreview.length;
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
@@ -88,6 +91,192 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
           </div>
         </div>
       </div>
+
+      {/* GPU / CUDA summary */}
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+        <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+          GPU / CUDA summary
+        </h3>
+        <ul className="mt-4 flex flex-wrap gap-2">
+          <li>
+            <Badge variant="default">
+              API hits: {cudaSummary.api_hit_count.toLocaleString()}
+            </Badge>
+          </li>
+          <li>
+            <Badge variant={cudaSummary.cu_file_count > 0 ? "warning" : "default"}>
+              .cu files: {cudaSummary.cu_file_count.toLocaleString()}
+            </Badge>
+          </li>
+          <li>
+            <YesNoBadge label="torch.cuda" value={cudaSummary.uses_torch_cuda} />
+          </li>
+          <li>
+            <YesNoBadge label="TensorRT" value={cudaSummary.uses_tensorrt} />
+          </li>
+          <li>
+            <YesNoBadge
+              label="NVIDIA Docker"
+              value={findings.docker.uses_nvidia_docker}
+            />
+          </li>
+        </ul>
+      </section>
+
+      {/* CUDA API hits */}
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+            CUDA API hits
+          </h3>
+          <span className="text-xs text-zinc-600">
+            {findings.cuda.api_hits.length} shown
+          </span>
+        </div>
+        {findings.cuda.api_hits.length > 0 ? (
+          <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-800">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-zinc-800 bg-zinc-950/80 text-xs uppercase tracking-wider text-zinc-500">
+                  <th className="px-4 py-3 font-medium">File</th>
+                  <th className="px-4 py-3 font-medium text-right">Line</th>
+                  <th className="px-4 py-3 font-medium">Symbol</th>
+                  <th className="px-4 py-3 font-medium">Snippet</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/80">
+                {findings.cuda.api_hits.map((hit, index) => (
+                  <tr key={`${hit.file}-${hit.line}-${hit.symbol}-${index}`} className="bg-zinc-950/40">
+                    <td
+                      className="max-w-[200px] truncate px-4 py-2.5 font-mono text-xs text-zinc-300"
+                      title={hit.file}
+                    >
+                      {hit.file}
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-zinc-400">
+                      {hit.line ?? "—"}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-xs text-amber-300">
+                      {hit.symbol}
+                    </td>
+                    <td
+                      className="max-w-md truncate px-4 py-2.5 text-xs text-zinc-400"
+                      title={hit.snippet}
+                    >
+                      {hit.snippet}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-500">No CUDA API hits detected</p>
+        )}
+      </section>
+
+      {/* CUDA source files */}
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+        <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+          CUDA source files
+        </h3>
+        {findings.cuda.cu_files.length > 0 ? (
+          <>
+            <ul className="mt-4 space-y-2">
+              {cuFilesPreview.map((file) => (
+                <li
+                  key={file.file}
+                  className="flex items-center gap-2 rounded-md border border-amber-900/30 bg-amber-950/20 px-3 py-2 font-mono text-xs text-amber-200"
+                >
+                  <span className="shrink-0 rounded bg-amber-900/40 px-1.5 py-0.5 text-[10px] uppercase text-amber-400">
+                    {file.symbol}
+                  </span>
+                  <span className="truncate" title={file.file}>
+                    {file.file}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {cuFilesRemaining > 0 && (
+              <p className="mt-3 text-xs text-zinc-500">
+                and {cuFilesRemaining.toLocaleString()} more
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-500">No .cu / .cuh source files found</p>
+        )}
+      </section>
+
+      {/* Dependencies */}
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+        <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+          Dependencies
+        </h3>
+        <div className="mt-4 space-y-5">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-600">
+              Frameworks
+            </p>
+            {findings.dependencies.frameworks.length > 0 ? (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {findings.dependencies.frameworks.map((fw) => (
+                  <li
+                    key={fw}
+                    className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1 font-mono text-sm text-zinc-200"
+                  >
+                    {fw}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-zinc-500">None detected</p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-600">
+              NVIDIA packages
+            </p>
+            {findings.dependencies.nvidia_packages.length > 0 ? (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {findings.dependencies.nvidia_packages.map((pkg) => (
+                  <li
+                    key={`${pkg.name}-${pkg.manifest ?? pkg.source ?? ""}`}
+                    className="rounded-md border border-red-900/50 bg-red-950/40 px-3 py-1.5 font-mono text-sm text-red-300"
+                    title={pkg.manifest ?? pkg.source}
+                  >
+                    {pkg.name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-zinc-500">None detected</p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-600">
+              Manifests found
+            </p>
+            {findings.dependencies.manifests_found.length > 0 ? (
+              <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+                {findings.dependencies.manifests_found.map((manifest) => (
+                  <li
+                    key={manifest}
+                    className="truncate rounded-md bg-zinc-950 px-3 py-1.5 font-mono text-xs text-zinc-400"
+                    title={manifest}
+                  >
+                    {manifest}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-zinc-500">No dependency manifests found</p>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Score + metrics grid */}
       <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
@@ -287,6 +476,14 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
         </ul>
       </section>
     </div>
+  );
+}
+
+function YesNoBadge({ label, value }: { label: string; value: boolean }) {
+  return (
+    <Badge variant={value ? "warning" : "default"}>
+      {label}: {value ? "yes" : "no"}
+    </Badge>
   );
 }
 
