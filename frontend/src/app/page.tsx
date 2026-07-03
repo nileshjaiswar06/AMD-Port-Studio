@@ -204,7 +204,7 @@ export default function Home() {
       </main>
 
       <footer className="mt-16 border-t border-zinc-800/80 py-6 text-center text-xs text-zinc-600">
-        AMD Port Studio · Day 2 — Real repository scanner · Migration intelligence still stubbed (Days 3–5)
+        AMD Port Studio · Day 3 — Real dependency & CUDA detection · Migration scoring still stubbed (Day 4–5)
       </footer>
     </div>
   );
