@@ -61,8 +61,55 @@ function downloadHtmlReport(html: string, repoName: string) {
   URL.revokeObjectURL(url);
 }
 
+const EMPTY_FINDINGS = {
+  dependencies: {
+    manifests_found: [],
+    packages: [],
+    frameworks: [],
+    nvidia_packages: [],
+    package_count: 0,
+  },
+  cuda: {
+    summary: {
+      api_hit_count: 0,
+      cu_file_count: 0,
+      python_files_scanned: 0,
+      uses_torch_cuda: false,
+      uses_tensorrt: false,
+      uses_cupy: false,
+      has_cuda_source: false,
+    },
+    api_hits: [],
+    cu_files: [],
+  },
+  docker: {
+    dockerfiles_found: [],
+    findings: [],
+    uses_nvidia_docker: false,
+  },
+  compatibility: {
+    score: 0,
+    tier: "Unknown",
+    effort_score: 0,
+    components: [],
+  },
+} satisfies NonNullable<AnalyzeResponse["findings"]>;
+
+const EMPTY_ANALYSIS = {
+  compatibilityScore: 0,
+  migrationDifficulty: "Unknown",
+  riskLevel: "Unknown",
+  estimatedHours: 0,
+  summary: "No analysis summary available.",
+  unsupportedLibraries: [],
+  recommendedAlternatives: [],
+  migrationSteps: [],
+} satisfies NonNullable<AnalyzeResponse["analysis"]>;
+
 export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
-  const { repository, analysis, findings, artifacts } = data;
+  const { repository,  artifacts } = data;
+  const analysis = data.analysis ?? EMPTY_ANALYSIS;
+  const findings = data.findings ?? EMPTY_FINDINGS;
   const [dockerCopied, setDockerCopied] = useState(false);
   const repoDisplayName = repository.name.replace(/_/g, "/");
   const cudaSummary = findings.cuda.summary;
@@ -153,7 +200,7 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
         </div>
         {findings.cuda.api_hits.length > 0 ? (
           <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-800">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-180 text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-800 bg-zinc-950/80 text-xs uppercase tracking-wider text-zinc-500">
                   <th className="px-4 py-3 font-medium">File</th>
@@ -166,7 +213,7 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
                 {findings.cuda.api_hits.map((hit, index) => (
                   <tr key={`${hit.file}-${hit.line}-${hit.symbol}-${index}`} className="bg-zinc-950/40">
                     <td
-                      className="max-w-[200px] truncate px-4 py-2.5 font-mono text-xs text-zinc-300"
+                      className="max-w-50 truncate px-4 py-2.5 font-mono text-xs text-zinc-300"
                       title={hit.file}
                     >
                       {hit.file}
@@ -306,7 +353,7 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
         </div>
         {findings.compatibility.components.length > 0 ? (
           <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-800">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-180 text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-800 bg-zinc-950/80 text-xs uppercase tracking-wider text-zinc-500">
                   <th className="px-4 py-3 font-medium">Component</th>
@@ -387,7 +434,7 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
           <div>
             {artifacts.aiUsed ? (
               <Badge variant="success">
-                AI advisor · {formatAiProviderLabel(artifacts.aiProvider)}
+                AI Planner · {formatAiProviderLabel(artifacts.aiProvider)}
               </Badge>
             ) : (
               <Badge variant="default">Deterministic summary (AI unavailable)</Badge>
@@ -550,7 +597,7 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
         </div>
         {repository.files.length > 0 ? (
           <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-800">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-160 text-left text-sm">
               <thead>
                 <tr className="border-b border-zinc-800 bg-zinc-950/80 text-xs uppercase tracking-wider text-zinc-500">
                   <th className="px-4 py-3 font-medium">Path</th>

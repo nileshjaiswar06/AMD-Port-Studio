@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Callable
+import logging
 
 from ai.provider import run_migration_advisor
 from compatibility.blockers import build_blockers
@@ -15,6 +16,7 @@ from parsers.docker_analyzer import analyze_docker_files
 from reports.html_report import render_html_report
 from scanner.indexer import index_repository
 
+logger = logging.getLogger(__name__)
 
 def _build_migration_status() -> dict:
     return {
@@ -107,7 +109,21 @@ def run_analysis_pipeline(
         analysis["migrationSteps"] = ai_output.migrationSteps
         if ai_output.recommendedAlternatives:
             analysis["recommendedAlternatives"] = ai_output.recommendedAlternatives
+    logger.info("=" * 60)
+    logger.info("AMD Port Studio - AI Provider")
+    logger.info("Repository  : %s", slug)
+    logger.info("Provider    : %s", ai_provider.capitalize())
+    logger.info("AI Used     : %s", ai_used)
 
+    if ai_used:
+        if ai_provider == "gemini":
+            logger.info("Model       : %s", settings.gemini_model)
+        elif ai_provider == "fireworks":
+            logger.info("Model       : %s", settings.fireworks_model)
+    else:
+        logger.info("Fallback    : Deterministic summary")
+
+    logger.info("=" * 60)
     if progress_callback:
         progress_callback("generating")
     dockerfile = generate_rocm_dockerfile(findings, slug)

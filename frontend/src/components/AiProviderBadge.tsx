@@ -22,7 +22,7 @@ export function AiProviderBadge({ artifacts }: AiProviderBadgeProps) {
 
   return (
     <span className="inline-flex items-center rounded-full border border-emerald-800/50 bg-emerald-950/60 px-3 py-1 text-xs font-medium text-emerald-300">
-      AI advisor · {formatProvider(artifacts.aiProvider)}
+      AI Planner · {formatProvider(artifacts.aiProvider)}
     </span>
   );
 }
