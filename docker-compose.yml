@@ -5,8 +5,10 @@ services:
       - "8000:8000"
     volumes:
       - ./workspace:/app/workspace
+      - ./data:/app/data
     environment:
       - WORKSPACE_DIR=/app/workspace
+      - DATABASE_PATH=/app/data/amd_port_studio.db
       - CORS_ORIGINS=http://localhost:3000
 
   frontend:

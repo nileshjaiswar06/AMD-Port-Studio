@@ -79,11 +79,12 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
               </svg>
             </a>
           </div>
-          <div className="flex shrink-0 flex-col items-center rounded-lg border border-zinc-800 bg-zinc-950 px-6 py-4">
-            <span className="text-2xl font-bold tabular-nums text-white">
-              {repository.file_count.toLocaleString()}
-            </span>
-            <span className="text-xs text-zinc-500">files scanned</span>
+          <div className="flex shrink-0 gap-3">
+            <StatBox value={repository.file_count} label="files scanned" />
+            <StatBox
+              value={repository.files_skipped}
+              label="files skipped"
+            />
           </div>
         </div>
       </div>
@@ -189,6 +190,80 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
         </div>
       </div>
 
+      {/* Language breakdown */}
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+        <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+          Language breakdown
+        </h3>
+        {Object.keys(repository.languages).length > 0 ? (
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {Object.entries(repository.languages)
+              .sort(([, a], [, b]) => b - a)
+              .map(([language, count]) => (
+                <li key={language}>
+                  <LanguageBadge language={language} count={count} />
+                </li>
+              ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-500">No languages detected</p>
+        )}
+      </section>
+
+      {/* File inventory */}
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+            File inventory
+          </h3>
+          <span className="text-xs text-zinc-600">
+            showing {repository.files.length} of {repository.file_count}
+          </span>
+        </div>
+        {repository.files.length > 0 ? (
+          <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-800">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-zinc-800 bg-zinc-950/80 text-xs uppercase tracking-wider text-zinc-500">
+                  <th className="px-4 py-3 font-medium">Path</th>
+                  <th className="px-4 py-3 font-medium">Language</th>
+                  <th className="px-4 py-3 font-medium text-right">Size</th>
+                  <th className="px-4 py-3 font-medium">Priority</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/80">
+                {repository.files.map((file) => (
+                  <tr
+                    key={file.path}
+                    className={
+                      file.priority === "high"
+                        ? "border-l-2 border-l-amber-500 bg-amber-950/20"
+                        : "bg-zinc-950/40"
+                    }
+                  >
+                    <td
+                      className="max-w-xs truncate px-4 py-2.5 font-mono text-xs text-zinc-300"
+                      title={file.path}
+                    >
+                      {file.path}
+                    </td>
+                    <td className="px-4 py-2.5 text-zinc-400">{file.language}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-zinc-400">
+                      {formatBytes(file.size_bytes)}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <PriorityBadge priority={file.priority} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-500">No files indexed</p>
+        )}
+      </section>
+
       {/* Sample files */}
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
         <div className="flex items-center justify-between">
@@ -213,6 +288,49 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
       </section>
     </div>
   );
+}
+
+function StatBox({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center rounded-lg border border-zinc-800 bg-zinc-950 px-6 py-4">
+      <span className="text-2xl font-bold tabular-nums text-white">
+        {value.toLocaleString()}
+      </span>
+      <span className="text-xs text-zinc-500">{label}</span>
+    </div>
+  );
+}
+
+function LanguageBadge({ language, count }: { language: string; count: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 bg-zinc-800/80 px-3 py-1 text-xs font-medium text-zinc-300">
+      <span className="font-mono text-zinc-200">{language}</span>
+      <span className="text-zinc-500">·</span>
+      <span className="tabular-nums text-zinc-400">{count.toLocaleString()}</span>
+    </span>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const styles: Record<string, string> = {
+    high: "border-amber-800/50 bg-amber-950/60 text-amber-300",
+    normal: "border-zinc-700 bg-zinc-800 text-zinc-300",
+    low: "border-zinc-800 bg-zinc-900 text-zinc-500",
+  };
+
+  return (
+    <span
+      className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium capitalize ${styles[priority] ?? styles.normal}`}
+    >
+      {priority}
+    </span>
+  );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function MetricCard({

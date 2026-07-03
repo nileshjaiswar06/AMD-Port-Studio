@@ -38,4 +38,5 @@ Thumbs.db
 # Project runtime (cloned repos — keep folder via .gitkeep)
 workspace/*
 !workspace/.gitkeep
+data/
 *.db
