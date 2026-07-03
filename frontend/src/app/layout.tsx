@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AMD Port Studio",
+  title: "Migration Command Center",
   description: "CUDA to ROCm migration analyzer for GitHub repositories",
 };
 

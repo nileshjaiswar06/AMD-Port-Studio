@@ -5,30 +5,32 @@ import stat
 import threading
 import time
 import uuid
+import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
 from git import Repo
 from git.exc import GitCommandError
 from pydantic import BaseModel, HttpUrl, field_validator
 
-from ai.provider import run_migration_advisor
-from compatibility.engine import build_deterministic_summary, evaluate_compatibility
+from analysis_pipeline import run_analysis_pipeline
 from config import settings
-from database import init_db, save_analysis
-from generators.deploy_guide import generate_deploy_guide
-from generators.docker_generator import generate_rocm_dockerfile
-from parsers.cuda_detector import detect_cuda
-from parsers.dependencies import extract_dependencies
-from parsers.docker_analyzer import analyze_docker_files
-from reports.html_report import render_html_report
-from scanner.indexer import index_repository
+from database import (
+    get_analysis,
+    get_analysis_export,
+    init_db,
+    list_analyses,
+    save_full_analysis,
+)
 
 app = FastAPI(title="AMD Port Studio API", version="0.1.0")
 
 GITHUB_OWNER_REPO_RE = re.compile(r"^[\w.-]+$")
+SLUG_RE = re.compile(r"[^a-zA-Z0-9._-]+")
 
 
 class AnalyzeRequest(BaseModel):
@@ -76,6 +78,12 @@ def repo_slug(owner: str, repo: str) -> str:
     return f"{owner}_{repo}"
 
 
+def slugify_name(name: str) -> str:
+    stem = Path(name).stem or "upload"
+    slug = SLUG_RE.sub("_", stem).strip("_")
+    return slug or "upload"
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
@@ -92,6 +100,8 @@ def _remove_readonly(func, path: str, _excinfo) -> None:
 
 _clone_locks: dict[str, threading.Lock] = {}
 _clone_locks_guard = threading.Lock()
+_analysis_jobs: dict[str, dict] = {}
+_analysis_jobs_guard = threading.Lock()
 
 
 def _clone_lock_for(slug: str) -> threading.Lock:
@@ -101,6 +111,123 @@ def _clone_lock_for(slug: str) -> threading.Lock:
             lock = threading.Lock()
             _clone_locks[slug] = lock
         return lock
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _create_analysis_job(source_type: str, source_name: str) -> str:
+    job_id = str(uuid.uuid4())
+    job = {
+        "id": job_id,
+        "status": "queued",
+        "stage": "cloning",
+        "analysis_id": None,
+        "error": None,
+        "source_type": source_type,
+        "source_name": source_name,
+        "created_at": _now_iso(),
+        "updated_at": _now_iso(),
+    }
+    with _analysis_jobs_guard:
+        _analysis_jobs[job_id] = job
+    return job_id
+
+
+def _get_analysis_job(job_id: str) -> dict | None:
+    with _analysis_jobs_guard:
+        job = _analysis_jobs.get(job_id)
+        return dict(job) if job else None
+
+
+def _update_analysis_job(job_id: str, **updates) -> dict | None:
+    with _analysis_jobs_guard:
+        job = _analysis_jobs.get(job_id)
+        if job is None:
+            return None
+        job.update(updates)
+        job["updated_at"] = _now_iso()
+        return dict(job)
+
+
+def _finalize_analysis_job(job_id: str, payload: dict) -> str:
+    response = _finalize_analysis(payload)
+    _update_analysis_job(
+        job_id,
+        status="completed",
+        stage="completed",
+        analysis_id=response["analysis_id"],
+        error=None,
+    )
+    return response["analysis_id"]
+
+
+def _fail_analysis_job(job_id: str, exc: Exception) -> None:
+    error = _handle_analysis_errors(exc)
+    _update_analysis_job(
+        job_id,
+        status="failed",
+        stage="failed",
+        error=error.detail,
+    )
+
+
+def _run_github_analysis_job(job_id: str, github_url: str, owner: str, repo: str) -> None:
+    workspace = Path(settings.workspace_dir)
+    workspace.mkdir(parents=True, exist_ok=True)
+
+    slug = repo_slug(owner, repo)
+    repo_path = workspace / slug
+
+    try:
+        _update_analysis_job(job_id, status="running", stage="cloning")
+        with _clone_lock_for(slug):
+            repo_path = clone_repository(github_url, repo_path)
+
+        def progress(stage: str) -> None:
+            _update_analysis_job(job_id, stage=stage)
+
+        payload = run_analysis_pipeline(
+            repo_path,
+            slug,
+            github_url,
+            "github",
+            progress_callback=progress,
+        )
+        _finalize_analysis_job(job_id, payload)
+    except Exception as exc:
+        _fail_analysis_job(job_id, exc)
+
+
+def _run_zip_analysis_job(
+    job_id: str,
+    archive_path: Path,
+    extract_dir: Path,
+    filename: str,
+) -> None:
+    try:
+        _update_analysis_job(job_id, status="running", stage="cloning")
+        repo_path = extract_zip_archive(archive_path, extract_dir)
+        slug = slugify_name(filename)
+
+        def progress(stage: str) -> None:
+            _update_analysis_job(job_id, stage=stage)
+
+        payload = run_analysis_pipeline(
+            repo_path,
+            slug,
+            filename,
+            "zip",
+            progress_callback=progress,
+        )
+        _finalize_analysis_job(job_id, payload)
+    except Exception as exc:
+        _fail_analysis_job(job_id, exc)
+    finally:
+        remove_directory(extract_dir)
+        if archive_path.exists():
+            archive_path.unlink(missing_ok=True)
 
 
 def remove_directory(path: Path, *, retries: int = 5, delay: float = 0.25) -> None:
@@ -177,6 +304,70 @@ def clone_repository(github_url: str, target_dir: Path) -> Path:
         raise
 
 
+def resolve_repo_root(extract_dir: Path) -> Path:
+    entries = [p for p in extract_dir.iterdir() if not p.name.startswith(".")]
+    if len(entries) == 1 and entries[0].is_dir():
+        return entries[0]
+    return extract_dir
+
+
+def extract_zip_archive(archive_path: Path, target_dir: Path) -> Path:
+    target_dir.mkdir(parents=True, exist_ok=True)
+    resolved_root = target_dir.resolve()
+
+    with zipfile.ZipFile(archive_path) as archive:
+        for member in archive.namelist():
+            if not member or member.endswith("/"):
+                continue
+            destination = (target_dir / member).resolve()
+            if not str(destination).startswith(str(resolved_root)):
+                raise ValueError("Unsafe path in zip archive")
+        archive.extractall(target_dir)
+
+    return resolve_repo_root(target_dir)
+
+
+def _finalize_analysis(payload: dict) -> dict:
+    db_path = Path(settings.database_path)
+    analysis_id = save_full_analysis(db_path, payload)
+    response = {k: v for k, v in payload.items() if k != "_db_scan"}
+    response["analysis_id"] = analysis_id
+    return response
+
+
+def _handle_analysis_errors(exc: Exception) -> HTTPException:
+    if isinstance(exc, GitCommandError):
+        return HTTPException(
+            status_code=400,
+            detail="Repository not found or not accessible. Check the GitHub URL.",
+        )
+    if isinstance(exc, ValueError):
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, PermissionError):
+        return HTTPException(
+            status_code=409,
+            detail=(
+                "Workspace folder is locked by another process. "
+                "Stop Docker (`docker compose down`) if it is running, "
+                "then retry."
+            ),
+        )
+    if isinstance(exc, OSError) and (
+        getattr(exc, "winerror", None) == 32 or exc.errno in {13, 16}
+    ):
+        return HTTPException(
+            status_code=409,
+            detail=(
+                "Workspace folder is locked by another process. "
+                "Stop Docker (`docker compose down`) if it is running, "
+                "then retry."
+            ),
+        )
+    if isinstance(exc, zipfile.BadZipFile):
+        return HTTPException(status_code=400, detail="Invalid or corrupted zip file.")
+    return HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
+
+
 @app.on_event("startup")
 def on_startup():
     init_db(Path(settings.database_path))
@@ -185,6 +376,111 @@ def on_startup():
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "amd-port-studio-api"}
+
+
+@app.get("/api/analyses")
+def analyses(limit: int = 50):
+    if limit < 1 or limit > 200:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 200")
+    return list_analyses(Path(settings.database_path), limit=limit)
+
+
+@app.post("/api/analyze/jobs")
+def analyze_job(request: AnalyzeRequest):
+    try:
+        github_url, owner, repo = parse_github_repo_url(str(request.github_url))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    job_id = _create_analysis_job("github", f"{owner}/{repo}")
+
+    thread = threading.Thread(
+        target=_run_github_analysis_job,
+        args=(job_id, github_url, owner, repo),
+        daemon=True,
+    )
+    thread.start()
+    return _get_analysis_job(job_id)
+
+
+@app.post("/api/analyze/jobs/zip")
+async def analyze_zip_job(file: UploadFile = File(...)):
+    filename = file.filename or "upload.zip"
+    if not filename.lower().endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Only .zip uploads are supported")
+
+    workspace = Path(settings.workspace_dir)
+    workspace.mkdir(parents=True, exist_ok=True)
+
+    slug = slugify_name(filename)
+    extract_dir = workspace / f"zip_{uuid.uuid4().hex[:12]}"
+    archive_path = extract_dir.with_suffix(".zip")
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded zip file is empty")
+    if len(content) > settings.max_zip_upload_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Zip file exceeds {settings.max_zip_upload_bytes // (1024 * 1024)}MB limit",
+        )
+
+    archive_path.write_bytes(content)
+    job_id = _create_analysis_job("zip", slug)
+
+    thread = threading.Thread(
+        target=_run_zip_analysis_job,
+        args=(job_id, archive_path, extract_dir, filename),
+        daemon=True,
+    )
+    thread.start()
+    return _get_analysis_job(job_id)
+
+
+@app.get("/api/analyze/jobs/{job_id}")
+def analyze_job_status(job_id: str):
+    job = _get_analysis_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Analysis job not found")
+    return job
+
+
+@app.get("/api/analyses/{analysis_id}")
+def analysis_detail(analysis_id: str):
+    stored = get_analysis(Path(settings.database_path), analysis_id)
+    if stored is None:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return stored
+
+
+@app.get("/api/analyses/{analysis_id}/export.json")
+def analysis_export(analysis_id: str):
+    stored = get_analysis_export(Path(settings.database_path), analysis_id)
+    if stored is None:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    return JSONResponse(
+        content=stored,
+        headers={
+            "Content-Disposition": f'attachment; filename="analysis-{analysis_id}.json"'
+        },
+    )
+
+
+@app.get("/api/analyses/{analysis_id}/report.html")
+def analysis_report_html(analysis_id: str):
+    stored = get_analysis(Path(settings.database_path), analysis_id)
+    if stored is None:
+        raise HTTPException(status_code=404, detail="Analysis not found")
+    html = (stored.get("artifacts") or {}).get("htmlReport")
+    if not html:
+        raise HTTPException(status_code=404, detail="HTML report not found for this analysis")
+    slug = stored.get("project_slug") or stored.get("repository", {}).get("name", analysis_id)
+    return HTMLResponse(
+        content=html,
+        headers={
+            "Content-Disposition": f'inline; filename="{slug}-migration-report.html"'
+        },
+    )
 
 
 @app.post("/api/analyze")
@@ -203,121 +499,45 @@ def analyze(request: AnalyzeRequest):
     try:
         with _clone_lock_for(slug):
             repo_path = clone_repository(github_url, repo_path)
-        scan = index_repository(repo_path)
-        all_files = scan["files"]
-        scan["files_full"] = all_files
-
-        dependencies = extract_dependencies(repo_path)
-        cuda = detect_cuda(repo_path, indexed_files=all_files)
-        docker = analyze_docker_files(repo_path)
-        findings = {
-            "dependencies": dependencies,
-            "cuda": cuda,
-            "docker": docker,
-        }
-
-        compatibility = evaluate_compatibility(findings)
-        findings["compatibility"] = {
-            "score": compatibility["score"],
-            "tier": compatibility["tier"],
-            "effort_score": compatibility["effort_score"],
-            "components": compatibility["components"],
-        }
-
-        deterministic_analysis = {
-            **compatibility["migration"],
-            "summary": build_deterministic_summary(slug, compatibility, findings),
-        }
-
-        ai_output = run_migration_advisor(
-            slug,
-            github_url,
-            findings,
-            findings["compatibility"],
-            deterministic_analysis,
-        )
-
-        analysis = {**deterministic_analysis}
-        ai_used = False
-        if ai_output:
-            ai_used = True
-            analysis["summary"] = ai_output.executiveSummary
-            analysis["migrationSteps"] = ai_output.migrationSteps
-            if ai_output.recommendedAlternatives:
-                analysis["recommendedAlternatives"] = ai_output.recommendedAlternatives
-
-        dockerfile = generate_rocm_dockerfile(findings, slug)
-        deploy_guide = generate_deploy_guide(findings, slug)
-        html_report = render_html_report(
-            slug,
-            github_url,
-            analysis,
-            findings,
-            dockerfile,
-            deploy_guide,
-            ai_used,
-        )
-        artifacts = {
-            "dockerfile": dockerfile,
-            "deployGuide": deploy_guide,
-            "htmlReport": html_report,
-            "aiUsed": ai_used,
-            "aiProvider": settings.ai_provider,
-        }
-
-        analysis_id = save_analysis(
-            Path(settings.database_path),
-            slug,
-            github_url,
-            {**scan, "files": all_files},
-        )
-
-        scan_for_response = {**scan, "files": all_files[:200]}
-        del scan_for_response["files_full"]
-
-        return {
-            "status": "success",
-            "analysis_id": analysis_id,
-            "repository": {
-                "name": slug,
-                "url": github_url,
-                "file_count": scan["file_count"],
-                "files_skipped": scan["files_skipped"],
-                "languages": scan["languages"],
-                "priority_files": scan["priority_files"],
-                "files": scan_for_response["files"],
-                "sample_files": scan["sample_files"],
-            },
-            "findings": findings,
-            "analysis": analysis,
-            "artifacts": artifacts,
-        }
-    except GitCommandError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail="Repository not found or not accessible. Check the GitHub URL.",
-        ) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except PermissionError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=(
-                "Workspace folder is locked by another process. "
-                "Stop Docker (`docker compose down`) if it is running, "
-                "then retry."
-            ),
-        ) from exc
-    except OSError as exc:
-        if getattr(exc, "winerror", None) == 32 or exc.errno in {13, 16}:
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "Workspace folder is locked by another process. "
-                    "Stop Docker (`docker compose down`) if it is running, "
-                    "then retry."
-                ),
-            ) from exc
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}") from exc
+        payload = run_analysis_pipeline(repo_path, slug, github_url, "github")
+        return _finalize_analysis(payload)
+    except HTTPException:
+        raise
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}") from exc
+        raise _handle_analysis_errors(exc) from exc
+
+
+@app.post("/api/analyze/zip")
+async def analyze_zip(file: UploadFile = File(...)):
+    filename = file.filename or "upload.zip"
+    if not filename.lower().endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Only .zip uploads are supported")
+
+    workspace = Path(settings.workspace_dir)
+    workspace.mkdir(parents=True, exist_ok=True)
+
+    slug = slugify_name(filename)
+    extract_dir = workspace / f"zip_{uuid.uuid4().hex[:12]}"
+    archive_path = extract_dir.with_suffix(".zip")
+
+    try:
+        content = await file.read()
+        if not content:
+            raise ValueError("Uploaded zip file is empty")
+        if len(content) > settings.max_zip_upload_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Zip file exceeds {settings.max_zip_upload_bytes // (1024 * 1024)}MB limit",
+            )
+        archive_path.write_bytes(content)
+        repo_path = extract_zip_archive(archive_path, extract_dir)
+        payload = run_analysis_pipeline(repo_path, slug, filename, "zip")
+        return _finalize_analysis(payload)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _handle_analysis_errors(exc) from exc
+    finally:
+        remove_directory(extract_dir)
+        if archive_path.exists():
+            archive_path.unlink(missing_ok=True)

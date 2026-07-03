@@ -111,11 +111,99 @@ export interface AnalyzeResponse {
   status: string;
   analysis_id: string;
   repository: RepositoryInfo;
-  findings: Findings;
-  analysis: MigrationAnalysis;
-  artifacts: Artifacts;
+  findings?: Findings;
+  analysis?: MigrationAnalysis;
+  artifacts?: Artifacts;
+  metrics?: Metrics;
+  migrationStatus?: MigrationStatus;
+  blockers?: Blocker[];
+  recommendations?: Recommendation[];
+  explainability?: Explainability;
 }
 
 export interface AnalyzeError {
   detail: string;
+}
+
+export interface ExplainabilitySignals {
+  cuda: CudaSummary;
+  docker: {
+    uses_nvidia_docker: boolean;
+    dockerfiles_found: string[];
+  };
+}
+
+export interface Explainability {
+  compatibility: {
+    score: number;
+    components: CompatibilityComponent[];
+    signals: ExplainabilitySignals;
+  };
+}
+
+export interface AnalysisSummary {
+  id: string;
+  repository_name: string;
+  project_slug: string | null;
+  source_type: string | null;
+  created_at: string;
+  compatibility_score: number | null;
+}
+
+export type AnalysisJobStage =
+  | "queued"
+  | "cloning"
+  | "scanning"
+  | "analyzing"
+  | "ai"
+  | "generating"
+  | "completed"
+  | "failed";
+
+export interface AnalysisJobStatus {
+  id: string;
+  status: "queued" | "running" | "completed" | "failed";
+  stage: AnalysisJobStage;
+  analysis_id: string | null;
+  error: string | null;
+  source_type: string;
+  source_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Blocker { 
+  severity: string; 
+  title: string; 
+  detail: string; 
+  source: string; 
+}
+
+export interface Recommendation { 
+  priority: string; 
+  action: string; 
+  rationale: string; 
+}
+
+export interface MigrationTimeline { 
+  preparation: number; 
+  docker: number; 
+  dependencies: number; 
+  cuda_kernels: number; 
+  validation: number; 
+  total: number; 
+}
+
+export interface Metrics {
+  readinessScore: number;
+  successProbability: number;
+  developerDays: number;
+  estimatedCost: number;
+  timeline: MigrationTimeline;
+}
+
+export interface MigrationStatus {
+  analysis: boolean; planning: boolean; docker: boolean;
+  migrate: boolean; validate: boolean; benchmark: boolean;
+  productionReady: boolean; maintain: boolean;
 }
