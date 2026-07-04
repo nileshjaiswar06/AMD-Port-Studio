@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { AnalyzeResponse } from "@/types/analysis";
 import { ScoreRing } from "./ScoreRing";
 
@@ -45,8 +46,25 @@ function riskVariant(risk: string): "default" | "warning" | "danger" | "success"
   return "warning";
 }
 
+function formatAiProviderLabel(provider: string): string {
+  if (!provider) return "AI";
+  return provider.charAt(0).toUpperCase() + provider.slice(1).toLowerCase();
+}
+
+function downloadHtmlReport(html: string, repoName: string) {
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${repoName.replace("/", "_")}-migration-report.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
-  const { repository, analysis, findings } = data;
+  const { repository, analysis, findings, artifacts } = data;
+  const [dockerCopied, setDockerCopied] = useState(false);
+  const repoDisplayName = repository.name.replace(/_/g, "/");
   const cudaSummary = findings.cuda.summary;
   const cuFilesPreview = findings.cuda.cu_files.slice(0, 20);
   const cuFilesRemaining = findings.cuda.cu_files.length - cuFilesPreview.length;
@@ -363,6 +381,80 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
         </h3>
         <p className="mt-3 leading-relaxed text-zinc-300">{analysis.summary}</p>
       </section>
+
+      {artifacts && (
+        <>
+          <div>
+            {artifacts.aiUsed ? (
+              <Badge variant="success">
+                AI advisor · {formatAiProviderLabel(artifacts.aiProvider)}
+              </Badge>
+            ) : (
+              <Badge variant="default">Deterministic summary (AI unavailable)</Badge>
+            )}
+          </div>
+
+          <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+                Generated ROCm Dockerfile
+              </h3>
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(artifacts.dockerfile);
+                  setDockerCopied(true);
+                  setTimeout(() => setDockerCopied(false), 2000);
+                }}
+                className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:border-zinc-600 hover:text-white"
+              >
+                {dockerCopied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <pre className="mt-4 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs leading-relaxed text-zinc-300">
+              {artifacts.dockerfile}
+            </pre>
+          </section>
+
+          <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+            <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+              Deployment guide
+            </h3>
+            <ol className="mt-4 space-y-3">
+              {artifacts.deployGuide.map((step, index) => (
+                <li key={step} className="flex gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-600/20 text-xs font-bold text-red-400">
+                    {index + 1}
+                  </span>
+                  <span className="pt-0.5 text-sm leading-relaxed text-zinc-300">
+                    {step}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() =>
+                downloadHtmlReport(artifacts.htmlReport, repoDisplayName)
+              }
+              className="inline-flex items-center gap-2 rounded-lg border border-red-800/50 bg-red-950/40 px-4 py-2.5 text-sm font-medium text-red-300 transition-colors hover:border-red-700 hover:bg-red-950/60 hover:text-red-200"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
+              </svg>
+              Download HTML report
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Migration steps + libraries */}
       <div className="grid gap-4 lg:grid-cols-2">

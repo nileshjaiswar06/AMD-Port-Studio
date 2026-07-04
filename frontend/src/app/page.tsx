@@ -204,7 +204,7 @@ export default function Home() {
       </main>
 
       <footer className="mt-16 border-t border-zinc-800/80 py-6 text-center text-xs text-zinc-600">
-        AMD Port Studio · Day 4 — ROCm rule engine · Real compatibility scoring · AI narrative on Day 5
+        AMD Port Studio · Day 5 — Gemini AI advisor · ROCm Docker generator · HTML report export
       </footer>
     </div>
   );

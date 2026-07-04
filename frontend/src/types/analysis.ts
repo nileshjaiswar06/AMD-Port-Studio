@@ -99,12 +99,21 @@ export interface CompatibilityReport {
   components: CompatibilityComponent[];
 }
 
+export interface Artifacts {
+  dockerfile: string;
+  deployGuide: string[];
+  htmlReport: string;
+  aiUsed: boolean;
+  aiProvider: string;
+}
+
 export interface AnalyzeResponse {
   status: string;
   analysis_id: string;
   repository: RepositoryInfo;
   findings: Findings;
   analysis: MigrationAnalysis;
+  artifacts: Artifacts;
 }
 
 export interface AnalyzeError {

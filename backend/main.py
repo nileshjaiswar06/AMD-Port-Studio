@@ -14,12 +14,16 @@ from git import Repo
 from git.exc import GitCommandError
 from pydantic import BaseModel, HttpUrl, field_validator
 
+from ai.provider import run_migration_advisor
 from compatibility.engine import build_deterministic_summary, evaluate_compatibility
 from config import settings
 from database import init_db, save_analysis
+from generators.deploy_guide import generate_deploy_guide
+from generators.docker_generator import generate_rocm_dockerfile
 from parsers.cuda_detector import detect_cuda
 from parsers.dependencies import extract_dependencies
 from parsers.docker_analyzer import analyze_docker_files
+from reports.html_report import render_html_report
 from scanner.indexer import index_repository
 
 app = FastAPI(title="AMD Port Studio API", version="0.1.0")
@@ -219,9 +223,46 @@ def analyze(request: AnalyzeRequest):
             "effort_score": compatibility["effort_score"],
             "components": compatibility["components"],
         }
-        analysis = {
+
+        deterministic_analysis = {
             **compatibility["migration"],
             "summary": build_deterministic_summary(slug, compatibility, findings),
+        }
+
+        ai_output = run_migration_advisor(
+            slug,
+            github_url,
+            findings,
+            findings["compatibility"],
+            deterministic_analysis,
+        )
+
+        analysis = {**deterministic_analysis}
+        ai_used = False
+        if ai_output:
+            ai_used = True
+            analysis["summary"] = ai_output.executiveSummary
+            analysis["migrationSteps"] = ai_output.migrationSteps
+            if ai_output.recommendedAlternatives:
+                analysis["recommendedAlternatives"] = ai_output.recommendedAlternatives
+
+        dockerfile = generate_rocm_dockerfile(findings, slug)
+        deploy_guide = generate_deploy_guide(findings, slug)
+        html_report = render_html_report(
+            slug,
+            github_url,
+            analysis,
+            findings,
+            dockerfile,
+            deploy_guide,
+            ai_used,
+        )
+        artifacts = {
+            "dockerfile": dockerfile,
+            "deployGuide": deploy_guide,
+            "htmlReport": html_report,
+            "aiUsed": ai_used,
+            "aiProvider": settings.ai_provider,
         }
 
         analysis_id = save_analysis(
@@ -249,6 +290,7 @@ def analyze(request: AnalyzeRequest):
             },
             "findings": findings,
             "analysis": analysis,
+            "artifacts": artifacts,
         }
     except GitCommandError as exc:
         raise HTTPException(
