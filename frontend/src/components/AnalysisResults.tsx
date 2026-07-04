@@ -278,6 +278,53 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
         </div>
       </section>
 
+      {/* ROCm compatibility */}
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+            ROCm compatibility
+          </h3>
+          <Badge variant="warning">{findings.compatibility.tier}</Badge>
+        </div>
+        {findings.compatibility.components.length > 0 ? (
+          <div className="mt-4 overflow-x-auto rounded-lg border border-zinc-800">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-zinc-800 bg-zinc-950/80 text-xs uppercase tracking-wider text-zinc-500">
+                  <th className="px-4 py-3 font-medium">Component</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Alternative</th>
+                  <th className="px-4 py-3 font-medium">Notes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-800/80">
+                {findings.compatibility.components.map((component) => (
+                  <tr key={component.id} className="bg-zinc-950/40">
+                    <td className="px-4 py-2.5 text-zinc-200">
+                      {component.name ?? component.label ?? component.id}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <StatusBadge status={component.status} />
+                    </td>
+                    <td className="px-4 py-2.5 text-zinc-400">
+                      {component.alternative || "—"}
+                    </td>
+                    <td
+                      className="max-w-md px-4 py-2.5 text-xs text-zinc-500"
+                      title={component.notes}
+                    >
+                      {component.notes || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-500">No compatibility components evaluated</p>
+        )}
+      </section>
+
       {/* Score + metrics grid */}
       <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
         <div className="flex items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
@@ -477,6 +524,18 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
       </section>
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, { variant: "default" | "warning" | "danger" | "success"; label: string }> = {
+    supported: { variant: "success", label: "supported" },
+    partial: { variant: "warning", label: "partial" },
+    unsupported: { variant: "danger", label: "unsupported" },
+    unknown: { variant: "default", label: "unknown" },
+  };
+
+  const config = styles[status] ?? styles.unknown;
+  return <Badge variant={config.variant}>{config.label}</Badge>;
 }
 
 function YesNoBadge({ label, value }: { label: string; value: boolean }) {

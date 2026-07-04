@@ -77,6 +77,26 @@ export interface Findings {
     findings: DockerFinding[];
     uses_nvidia_docker: boolean;
   };
+  compatibility: CompatibilityReport;
+}
+
+export interface CompatibilityComponent {
+  id: string;
+  type: string;
+  name?: string;
+  label?: string;
+  status: "supported" | "partial" | "unsupported" | "unknown";
+  alternative: string;
+  difficulty: string;
+  notes: string;
+  manifest?: string;
+}
+
+export interface CompatibilityReport {
+  score: number;
+  tier: string;
+  effort_score: number;
+  components: CompatibilityComponent[];
 }
 
 export interface AnalyzeResponse {

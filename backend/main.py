@@ -14,6 +14,7 @@ from git import Repo
 from git.exc import GitCommandError
 from pydantic import BaseModel, HttpUrl, field_validator
 
+from compatibility.engine import build_deterministic_summary, evaluate_compatibility
 from config import settings
 from database import init_db, save_analysis
 from parsers.cuda_detector import detect_cuda
@@ -172,35 +173,6 @@ def clone_repository(github_url: str, target_dir: Path) -> Path:
         raise
 
 
-def mock_migration_analysis(
-    repo_name: str,
-    scan: dict,
-    findings: dict | None = None,
-) -> dict:
-    summary_extra = ""
-    if findings:
-        cs = findings["cuda"]["summary"]
-        summary_extra = (
-            f" Detected {cs['api_hit_count']} CUDA API hits and "
-            f"{cs['cu_file_count']} .cu source files. "
-            "Compatibility scoring arrives on Day 4."
-        )
-    return {
-        "migrationDifficulty": "Medium",
-        "estimatedHours": 8,
-        "riskLevel": "Moderate",
-        "compatibilityScore": 72,
-        "summary": f"Stub migration advisor for {repo_name}.{summary_extra}",
-        "unsupportedLibraries": ["tensorrt"],
-        "recommendedAlternatives": ["ONNX Runtime ROCm"],
-        "migrationSteps": [
-            "Review CUDA dependencies",
-            "Update Docker base image to ROCm",
-            "Validate PyTorch on AMD hardware",
-        ],
-    }
-
-
 @app.on_event("startup")
 def on_startup():
     init_db(Path(settings.database_path))
@@ -240,6 +212,18 @@ def analyze(request: AnalyzeRequest):
             "docker": docker,
         }
 
+        compatibility = evaluate_compatibility(findings)
+        findings["compatibility"] = {
+            "score": compatibility["score"],
+            "tier": compatibility["tier"],
+            "effort_score": compatibility["effort_score"],
+            "components": compatibility["components"],
+        }
+        analysis = {
+            **compatibility["migration"],
+            "summary": build_deterministic_summary(slug, compatibility, findings),
+        }
+
         analysis_id = save_analysis(
             Path(settings.database_path),
             slug,
@@ -264,7 +248,7 @@ def analyze(request: AnalyzeRequest):
                 "sample_files": scan["sample_files"],
             },
             "findings": findings,
-            "analysis": mock_migration_analysis(slug, scan, findings),
+            "analysis": analysis,
         }
     except GitCommandError as exc:
         raise HTTPException(

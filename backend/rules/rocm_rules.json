@@ -1,0 +1,160 @@
+{
+  "packages": {
+    "torch": {
+      "status": "supported",
+      "label": "PyTorch",
+      "alternative": "ROCm-enabled PyTorch (pip install torch --index-url https://download.pytorch.org/whl/rocm6.2)",
+      "difficulty": "low",
+      "notes": "Use ROCm builds from PyTorch; verify GPU arch matches your AMD hardware."
+    },
+    "pytorch": {
+      "status": "supported",
+      "label": "PyTorch",
+      "alternative": "ROCm-enabled PyTorch",
+      "difficulty": "low",
+      "notes": "Same as torch."
+    },
+    "tensorflow": {
+      "status": "partial",
+      "label": "TensorFlow",
+      "alternative": "TensorFlow ROCm build or ONNX Runtime ROCm",
+      "difficulty": "medium",
+      "notes": "Verify ROCm-supported TensorFlow version for your stack."
+    },
+    "onnxruntime": {
+      "status": "supported",
+      "label": "ONNX Runtime",
+      "alternative": "onnxruntime-rocm",
+      "difficulty": "low",
+      "notes": "Use ROCm execution provider."
+    },
+    "onnxruntime-gpu": {
+      "status": "partial",
+      "label": "ONNX Runtime GPU",
+      "alternative": "onnxruntime-rocm",
+      "difficulty": "medium",
+      "notes": "Replace CUDA EP with ROCm EP."
+    },
+    "transformers": {
+      "status": "supported",
+      "label": "Hugging Face Transformers",
+      "alternative": "Same package on ROCm PyTorch",
+      "difficulty": "low",
+      "notes": "Depends on PyTorch ROCm backend."
+    },
+    "tensorrt": {
+      "status": "unsupported",
+      "label": "TensorRT",
+      "alternative": "ONNX Runtime ROCm or MIGraphX",
+      "difficulty": "high",
+      "notes": "NVIDIA-only inference stack; redesign inference path."
+    },
+    "triton": {
+      "status": "partial",
+      "label": "Triton",
+      "alternative": "Validate on ROCm; may need kernel rewrites",
+      "difficulty": "high",
+      "notes": "Backend compatibility varies; benchmark on AMD."
+    },
+    "cupy": {
+      "status": "partial",
+      "label": "CuPy",
+      "alternative": "CuPy ROCm builds or refactor to PyTorch tensors",
+      "difficulty": "high",
+      "notes": "CUDA-specific array API."
+    },
+    "pycuda": {
+      "status": "unsupported",
+      "label": "PyCUDA",
+      "alternative": "HIP / ROCm-compatible APIs",
+      "difficulty": "high",
+      "notes": "Direct CUDA bindings; manual port required."
+    },
+    "bitsandbytes": {
+      "status": "partial",
+      "label": "bitsandbytes",
+      "alternative": "Check ROCm support for your version",
+      "difficulty": "medium",
+      "notes": "Quantization support varies on AMD."
+    },
+    "nccl": {
+      "status": "unsupported",
+      "label": "NCCL",
+      "alternative": "RCCL (ROCm collective communications)",
+      "difficulty": "medium",
+      "notes": "Replace NVIDIA NCCL with RCCL."
+    },
+    "nvidia-cublas-cu12": {
+      "status": "unsupported",
+      "label": "NVIDIA cuBLAS",
+      "alternative": "rocBLAS via ROCm",
+      "difficulty": "high",
+      "notes": "NVIDIA CUDA library."
+    },
+    "nvidia-cuda-runtime-cu12": {
+      "status": "unsupported",
+      "label": "CUDA Runtime",
+      "alternative": "ROCm runtime",
+      "difficulty": "high",
+      "notes": "Replace NVIDIA CUDA runtime."
+    },
+    "nvidia-cudnn-cu12": {
+      "status": "unsupported",
+      "label": "cuDNN",
+      "alternative": "MIOpen (ROCm)",
+      "difficulty": "high",
+      "notes": "Use MIOpen equivalents where applicable."
+    },
+    "accelerate": {
+      "status": "supported",
+      "label": "Hugging Face Accelerate",
+      "alternative": "Same on ROCm PyTorch",
+      "difficulty": "low",
+      "notes": "Works with ROCm PyTorch backend."
+    },
+    "opencv-python": {
+      "status": "partial",
+      "label": "OpenCV",
+      "alternative": "Rebuild OpenCV with ROCm if GPU acceleration needed",
+      "difficulty": "medium",
+      "notes": "CPU build often works; GPU path needs ROCm build."
+    }
+  },
+  "signals": {
+    "torch_cuda_api": {
+      "status": "partial",
+      "label": "torch.cuda API usage",
+      "alternative": "ROCm PyTorch device APIs (often minimal code change)",
+      "difficulty": "low",
+      "notes": "Many torch.cuda calls work on ROCm PyTorch with device='cuda' compatibility layer."
+    },
+    "cuda_source_files": {
+      "status": "unsupported",
+      "label": "Custom CUDA kernels (.cu)",
+      "alternative": "Port to HIP or rewrite hot paths",
+      "difficulty": "high",
+      "notes": "Manual engineering; cannot auto-migrate."
+    },
+    "nvidia_docker": {
+      "status": "partial",
+      "label": "NVIDIA Docker configuration",
+      "alternative": "rocm/pytorch or rocm/dev base images",
+      "difficulty": "medium",
+      "notes": "Replace NVIDIA base images and runtime settings."
+    },
+    "cupy_usage": {
+      "status": "partial",
+      "label": "CuPy usage",
+      "alternative": "CuPy ROCm or PyTorch tensors",
+      "difficulty": "high",
+      "notes": "Review array code paths."
+    },
+    "tensorrt_usage": {
+      "status": "unsupported",
+      "label": "TensorRT usage",
+      "alternative": "ONNX Runtime ROCm",
+      "difficulty": "high",
+      "notes": "Inference stack redesign likely required."
+    }
+  }
+}
