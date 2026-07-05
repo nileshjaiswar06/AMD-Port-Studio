@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { AnalyzeResponse } from "@/types/analysis";
 import { ScoreRing } from "./ScoreRing";
+import { ConfidenceBadge } from "./ConfidenceBadge";
 
 interface AnalysisResultsProps {
   data: AnalyzeResponse;
@@ -162,6 +163,9 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
         <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
           GPU / CUDA summary
         </h3>
+        {data.confidence?.cuda && (
+             <ConfidenceBadge value={data.confidence.cuda.value} />
+        )}
         <ul className="mt-4 flex flex-wrap gap-2">
           <li>
             <Badge variant="default">
@@ -278,6 +282,9 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
         <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
           Dependencies
         </h3>
+        {data.confidence?.dependencies && (
+            <ConfidenceBadge value={data.confidence.dependencies.value} />
+        )}
         <div className="mt-4 space-y-5">
           <div>
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-600">
@@ -349,6 +356,9 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
           <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
             ROCm compatibility
           </h3>
+          {data.confidence?.compatibility && (
+              <ConfidenceBadge value={data.confidence.compatibility.value} />
+          )}
           <Badge variant="warning">{findings.compatibility.tier}</Badge>
         </div>
         {findings.compatibility.components.length > 0 ? (
@@ -446,6 +456,9 @@ export function AnalysisResults({ data, analyzedAt }: AnalysisResultsProps) {
               <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
                 Generated ROCm Dockerfile
               </h3>
+              {data.confidence?.docker && (
+                <ConfidenceBadge value={data.confidence.docker.value} />
+              )}
               <button
                 type="button"
                 onClick={async () => {

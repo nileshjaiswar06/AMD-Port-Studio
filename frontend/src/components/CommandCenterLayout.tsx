@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 export type CommandCenterSection = "overview" | "history" | "downloads" | "settings";
 
@@ -28,7 +29,7 @@ export function CommandCenterLayout({
 }: CommandCenterLayoutProps) {
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col lg:flex-row">
-      <aside className="w-full shrink-0 border-b border-zinc-800 bg-zinc-950/90 lg:w-56 lg:border-b-0 lg:border-r">
+      <aside className="flex w-full shrink-0 flex-col border-b border-zinc-800 bg-zinc-950/90 lg:w-56 lg:border-b-0 lg:border-r">
         <div className="p-4">
           <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
             Project
@@ -51,9 +52,14 @@ export function CommandCenterLayout({
             </button>
           ))}
         </nav>
-        {sidebarFooter && (
-          <div className="hidden border-t border-zinc-800 p-4 lg:block">{sidebarFooter}</div>
-        )}
+        <div className="mt-auto p-5">
+          <Link
+            href="/"
+            className="inline-block text-sm text-red-400 transition hover:text-red-300"
+          >
+            ← New analysis
+          </Link>
+        </div>
       </aside>
       <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
     </div>

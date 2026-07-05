@@ -26,6 +26,17 @@ AI_FRAMEWORK_PACKAGES = {
     "onnxruntime-gpu", "triton", "accelerate", "bitsandbytes",
 }
 
+IGNORED_DEV_DEPENDENCIES = {
+    "pytest",
+    "black",
+    "ruff",
+    "flake8",
+    "mypy",
+    "ipython",
+    "jupyter",
+    "pre-commit",
+    "coverage",
+}
 
 def _normalize_name(raw: str) -> str:
     name = raw.strip().lower()
@@ -57,7 +68,10 @@ def parse_pyproject_file(path: Path) -> list[dict]:
     import tomllib
 
     packages: list[dict] = []
-    data = tomllib.loads(path.read_text(encoding="utf-8", errors="ignore"))
+    try:
+        data = tomllib.loads(path.read_text(encoding="utf-8", errors="ignore"))
+    except Exception:
+        return []
 
     deps: list[str] = []
     project = data.get("project", {})
@@ -174,6 +188,8 @@ def extract_dependencies(repo_path: Path) -> dict:
     seen: set[str] = set()
     unique: list[dict] = []
     for pkg in all_packages:
+        if pkg["name"] in IGNORED_DEV_DEPENDENCIES:
+            continue
         if pkg["name"] in seen:
             continue
         seen.add(pkg["name"])

@@ -189,12 +189,6 @@ export function CommandCenter({ data }: CommandCenterProps) {
           <p className="mt-6 text-xs text-zinc-600">
             Provider configuration is managed via backend environment variables.
           </p>
-          <Link
-            href="/"
-            className="mt-4 inline-block text-sm text-red-400 hover:text-red-300"
-          >
-            ← New analysis
-          </Link>
         </section>
       )}
     </CommandCenterLayout>

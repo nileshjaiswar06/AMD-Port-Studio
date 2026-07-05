@@ -1,4 +1,32 @@
-def generate_rocm_dockerfile(findings: dict, repo_name: str) -> str:
+from pathlib import Path
+
+from generators.docker_migrator import migrate_existing_dockerfile
+
+def generate_rocm_dockerfile(findings: dict, repo_name: str, repo_path: Path) -> str:
+
+    rocm_docker = repo_path / "rocm.Dockerfile"
+    if rocm_docker.exists():
+        return rocm_docker.read_text(
+            encoding="utf-8",
+            errors="ignore",
+        )
+
+    dockerfile = repo_path / "Dockerfile"
+    if dockerfile.exists():
+        existing = dockerfile.read_text(
+            encoding="utf-8",
+            errors="ignore",
+        )
+        # Repository already contains a ROCm Dockerfile.
+        if "rocm/" in existing.lower():
+            return existing
+        migrated, changed = migrate_existing_dockerfile(
+            existing,
+            findings,
+        )
+        if changed:
+            return migrated
+
     deps = findings["dependencies"]
     frameworks = deps.get("frameworks", [])
     uses_torch = "torch" in frameworks or findings["cuda"]["summary"]["uses_torch_cuda"]

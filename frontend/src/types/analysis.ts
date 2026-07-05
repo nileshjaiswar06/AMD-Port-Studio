@@ -119,6 +119,20 @@ export interface AnalyzeResponse {
   blockers?: Blocker[];
   recommendations?: Recommendation[];
   explainability?: Explainability;
+  confidence?: Confidence;
+}
+
+export interface ConfidenceItem {
+  value: "high" | "medium" | "low";
+  score: number;
+  reason: string;
+}
+
+export interface Confidence {
+  cuda: ConfidenceItem;
+  dependencies: ConfidenceItem;
+  compatibility: ConfidenceItem;
+  docker: ConfidenceItem;
 }
 
 export interface AnalyzeError {

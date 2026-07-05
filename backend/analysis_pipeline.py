@@ -6,6 +6,7 @@ from ai.provider import run_migration_advisor
 from compatibility.blockers import build_blockers
 from compatibility.engine import build_deterministic_summary, evaluate_compatibility
 from compatibility.recommendations import build_recommendations
+from confidence.engine import build_confidence
 from config import settings
 from generators.deploy_guide import generate_deploy_guide
 from generators.docker_generator import generate_rocm_dockerfile
@@ -58,7 +59,20 @@ def run_analysis_pipeline(
     if progress_callback:
         progress_callback("scanning")
     scan = index_repository(repo_path)
+
+    MAX_FILES = 20000
+    if scan["file_count"] > MAX_FILES:
+        raise ValueError(
+            f"Repository too large ({scan['file_count']} files). "
+            "Maximum supported repository size is 20,000 files."
+        )
+
     all_files = scan["files"]
+
+    MAX_INDEXED_FILES = 5000
+    if len(all_files) > MAX_INDEXED_FILES:
+        all_files = all_files[:MAX_INDEXED_FILES]
+
     scan["files_full"] = all_files
 
     dependencies = extract_dependencies(repo_path)
@@ -73,6 +87,7 @@ def run_analysis_pipeline(
     if progress_callback:
         progress_callback("analyzing")
     compatibility = evaluate_compatibility(findings)
+    confidence = build_confidence(findings, compatibility)
     findings["compatibility"] = {
         "score": compatibility["score"],
         "tier": compatibility["tier"],
@@ -126,7 +141,7 @@ def run_analysis_pipeline(
     logger.info("=" * 60)
     if progress_callback:
         progress_callback("generating")
-    dockerfile = generate_rocm_dockerfile(findings, slug)
+    dockerfile = generate_rocm_dockerfile(findings, slug, repo_path)
     deploy_guide = generate_deploy_guide(findings, slug)
     html_report = render_html_report(
         slug,
@@ -168,6 +183,7 @@ def run_analysis_pipeline(
         },
         "findings": findings,
         "analysis": analysis,
+        "confidence": confidence,
         "artifacts": artifacts,
         "metrics": metrics,
         "blockers": blockers,

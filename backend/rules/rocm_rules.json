@@ -118,6 +118,41 @@
       "alternative": "Rebuild OpenCV with ROCm if GPU acceleration needed",
       "difficulty": "medium",
       "notes": "CPU build often works; GPU path needs ROCm build."
+    },
+    "xformers": {
+      "status": "partial",
+      "label": "xFormers",
+      "alternative": "PyTorch SDPA or ROCm-compatible xFormers",
+      "difficulty": "medium",
+      "notes": "Kernel support depends on ROCm version."
+    },
+    "flash-attn": {
+      "status": "partial",
+      "label": "FlashAttention",
+      "alternative": "ROCm FlashAttention implementation",
+      "difficulty": "high",
+      "notes": "Requires ROCm-compatible build."
+    },
+    "deepspeed": {
+      "status": "partial",
+      "label": "DeepSpeed",
+      "alternative": "DeepSpeed ROCm",
+      "difficulty": "medium",
+      "notes": "Feature support varies by ROCm release."
+    },
+    "vllm": {
+      "status": "partial",
+      "label": "vLLM",
+      "alternative": "ROCm-supported vLLM build",
+      "difficulty": "medium",
+      "notes": "Verify supported ROCm version."
+    },
+    "apex": {
+      "status": "unsupported",
+      "label": "NVIDIA Apex",
+      "alternative": "Native PyTorch AMP",
+      "difficulty": "high",
+      "notes": "CUDA-specific mixed precision library."
     }
   },
   "signals": {
