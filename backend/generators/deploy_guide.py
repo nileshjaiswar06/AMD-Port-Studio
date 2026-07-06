@@ -1,3 +1,5 @@
+from config import settings
+
 def generate_deploy_guide(findings: dict, repo_name: str) -> list[str]:
     cuda = findings["cuda"]["summary"]
     docker = findings["docker"]
@@ -10,23 +12,47 @@ def generate_deploy_guide(findings: dict, repo_name: str) -> list[str]:
 
     if docker.get("dockerfiles_found"):
         names = ", ".join(docker["dockerfiles_found"][:3])
-        steps.append(f"Review existing Dockerfiles ({names}) and replace NVIDIA base images")
+        steps.append(
+            f"Review existing Dockerfiles ({names}) and replace NVIDIA base images"
+        )
 
     if docker["uses_nvidia_docker"]:
-        steps.append("Replace nvidia/cuda images with rocm/pytorch or rocm/dev")
+        steps.append(
+            "Replace nvidia/cuda images with rocm/pytorch or rocm/dev"
+        )
 
     if cuda["uses_torch_cuda"]:
-        steps.append("Install ROCm-enabled PyTorch and run a smoke test with torch.cuda.is_available()")
+        steps.append(
+            "Install ROCm-enabled PyTorch and run a smoke test with torch.cuda.is_available()"
+        )
 
     if cuda["cu_file_count"] > 0:
         steps.append(
             f"Plan HIP port for {cuda['cu_file_count']} CUDA source files — manual engineering required"
         )
 
+    # Local deployment
     steps.extend([
         "Build: docker build -f Dockerfile.rocm -t app-rocm .",
         "Run: docker run --device=/dev/kfd --device=/dev/dri --group-add video app-rocm",
+    ])
+
+    # AMD Cloud deployment (optional)
+    if settings.amd_cloud_api_key:
+        steps.extend([
+            "",
+            "=== AMD Cloud Deployment ===",
+            "Authenticate with AMD Developer Cloud.",
+            "Provision a ROCm-enabled GPU instance.",
+            "Push the generated Docker image to your container registry.",
+            "Deploy the application on the AMD GPU instance.",
+            "Verify deployment health and monitor GPU utilization.",
+        ])
+
+    # Validation
+    steps.extend([
         "Benchmark inference/training workload on AMD hardware",
         "Compare results against NVIDIA baseline",
     ])
+
     return steps

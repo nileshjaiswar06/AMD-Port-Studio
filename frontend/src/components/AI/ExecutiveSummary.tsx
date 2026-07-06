@@ -26,8 +26,7 @@ export function ExecutiveSummary({ data }: ExecutiveSummaryProps) {
     compatibility;
 
   const cost =
-    metrics?.estimatedCost ??
-    hours * 110;
+    metrics?.estimatedCost ?? 0;
 
   const developerDays =
     metrics?.developerDays ??

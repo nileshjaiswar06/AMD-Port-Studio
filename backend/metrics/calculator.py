@@ -113,6 +113,7 @@ def compute_metrics(
         "readinessScore": round(compat_score * (1 - penalty)),
         "successProbability": compute_success_probability(compatibility, blockers),
         "developerDays": round(hours / 8, 1),
+        "hourlyRate": rate,
         "estimatedCost": round(hours * rate, 2),
         "timeline": _build_timeline(hours, weights),
     }

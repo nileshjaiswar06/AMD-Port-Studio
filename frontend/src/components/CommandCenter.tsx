@@ -38,6 +38,19 @@ function formatProjectName(name: string): string {
 }
 
 export function CommandCenter({ data }: CommandCenterProps) {
+  function SettingRow({label, value,}: { label: string; value: React.ReactNode }) {
+    return (
+      <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <dt className="text-zinc-500">
+          {label}
+        </dt>
+        <dd className="max-w-sm break-all text-right text-zinc-200">
+          {value}
+        </dd>
+      </div>
+    );
+  }
+
   const [section, setSection] = useState<CommandCenterSection>("overview");
 
   const analysis = data.analysis;
@@ -48,11 +61,13 @@ export function CommandCenter({ data }: CommandCenterProps) {
     data.explainability?.compatibility?.score ??
     0;
   const estimatedHours = analysis?.estimatedHours ?? 0;
+  const DEFAULT_HOURLY_RATE = 110;
   const metrics = data.metrics ?? {
     readinessScore: compatibilityScore,
     successProbability: compatibilityScore,
     developerDays: estimatedHours / 8,
-    estimatedCost: estimatedHours * 110,
+    hourlyRate: DEFAULT_HOURLY_RATE,
+    estimatedCost: estimatedHours * DEFAULT_HOURLY_RATE,
     timeline: {
       preparation: 0,
       docker: 0,
@@ -184,27 +199,54 @@ export function CommandCenter({ data }: CommandCenterProps) {
       )}
 
       {section === "settings" && (
-        <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
-          <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
-            Settings
-          </h3>
-          <dl className="mt-4 space-y-3 text-sm">
-            <div className="flex justify-between gap-4 border-b border-zinc-800 pb-3">
-              <dt className="text-zinc-500">AI provider</dt>
-              <dd className="text-zinc-200">
-                {data.artifacts?.aiUsed
-                  ? data.artifacts.aiProvider
-                  : "deterministic (no AI)"}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-4 border-b border-zinc-800 pb-3">
-              <dt className="text-zinc-500">Analysis ID</dt>
-              <dd className="font-mono text-xs text-zinc-400">{data.analysis_id}</dd>
-            </div>
-          </dl>
-          <p className="mt-6 text-xs text-zinc-600">
-            Provider configuration is managed via backend environment variables.
-          </p>
+        <section className="space-y-6">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+            <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+              AI Configuration
+            </h3>
+
+            <dl className="mt-6 space-y-4">
+              <SettingRow label="Provider" value={data.artifacts?.aiUsed ? data.artifacts.aiProvider : "Deterministic" }/>
+              <SettingRow label="AI Status" value={data.artifacts?.aiUsed ? "Enabled" : "Disabled" }/>
+              <SettingRow label="Mode" value={data.artifacts?.aiUsed ? "AI Assisted" : "Rule Engine" }/>
+            </dl>
+          </div>
+
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+            <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+              Migration Configuration
+            </h3>
+
+            <dl className="mt-6 space-y-4">
+              <SettingRow label="Hourly Rate" value={`$${metrics.hourlyRate} / hr`}/>
+              <SettingRow label="Developer Days" value={`${metrics.developerDays}`}/>
+              <SettingRow label="Estimated Cost" value={`$${metrics.estimatedCost}`}/>
+            </dl>
+          </div>
+
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+            <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+              Analysis
+            </h3>
+
+            <dl className="mt-6 space-y-4">
+              <SettingRow label="Repository" value={projectName}/>
+              <SettingRow label="Analysis ID" value={data.analysis_id}/>
+              <SettingRow label="Compatibility" value={`${compatibilityScore}%`}/>
+            </dl>
+          </div>
+
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+            <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+              Generated Artifacts
+            </h3>
+
+            <dl className="mt-6 space-y-4">
+              <SettingRow label="Dockerfile" value={data.artifacts ? "Generated" : "Unavailable"}/>
+              <SettingRow label="Deploy Guide" value={data.artifacts ? "Generated" : "Unavailable"}/>
+              <SettingRow label="HTML Report" value={data.artifacts ? "Generated" : "Unavailable"}/>
+            </dl>
+          </div>
         </section>
       )}
     </CommandCenterLayout>

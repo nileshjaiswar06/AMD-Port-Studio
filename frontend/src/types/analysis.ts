@@ -212,6 +212,7 @@ export interface Metrics {
   readinessScore: number;
   successProbability: number;
   developerDays: number;
+  hourlyRate: number;
   estimatedCost: number;
   timeline: MigrationTimeline;
 }
