@@ -107,15 +107,15 @@ export function CommandCenter({ data }: CommandCenterProps) {
       {section === "overview" && (
         <div className="space-y-6">
           <MigrationStatusBar status={migrationStatus} />
-          <MetricsOverview compatibilityScore={compatibilityScore} metrics={metrics} />
+          <MetricsOverview compatibilityScore={compatibilityScore} metrics={metrics} explainability={data.explainability}/>
           <div className="grid gap-6 xl:grid-cols-2">
             <BlockersPanel blockers={blockers} />
             <RecommendationsPanel recommendations={recommendations} />
           </div>
           <TimelinePanel metrics={metrics} />
-          {data.explainability && (
+          {/* {data.explainability && (
             <ExplainabilityPanel explainability={data.explainability} />
-          )}
+          )} */}
           <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
             <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
               Summary
