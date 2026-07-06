@@ -16,6 +16,7 @@ import { MetricsOverview } from "./MetricsOverview";
 import { MigrationStatusBar } from "./MigrationStatusBar";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { TimelinePanel } from "./TimelinePanel";
+import { AiPlanner } from "./AiPlanner";
 
 interface CommandCenterProps {
   data: AnalyzeResponse;
@@ -125,6 +126,21 @@ export function CommandCenter({ data }: CommandCenterProps) {
             </p>
           </section>
         </div>
+      )}
+
+      {section === "ai" && (
+        <section className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-6">
+          <h3 className="text-sm font-medium uppercase tracking-wider text-zinc-500">
+            AI Planner
+          </h3>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
+            This view turns the analysis into an execution-oriented migration plan.
+            It combines the deterministic facts with AI-generated guidance when available.
+          </p>
+          <div className="mt-6 max-w-5xl">
+            <AiPlanner data={data} />
+          </div>
+        </section>
       )}
 
       {section === "history" && (

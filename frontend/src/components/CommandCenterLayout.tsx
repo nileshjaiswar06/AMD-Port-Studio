@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
-export type CommandCenterSection = "overview" | "history" | "downloads" | "settings";
+export type CommandCenterSection = "overview" | "ai" | "history" | "downloads" | "settings";
 
 interface CommandCenterLayoutProps {
   projectName: string;
@@ -15,6 +15,7 @@ interface CommandCenterLayoutProps {
 
 const NAV: { id: CommandCenterSection; label: string }[] = [
   { id: "overview", label: "Overview" },
+  { id: "ai", label: "AI Planner" },
   { id: "history", label: "History" },
   { id: "downloads", label: "Downloads" },
   { id: "settings", label: "Settings" },
