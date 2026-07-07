@@ -17,6 +17,7 @@ import { MigrationStatusBar } from "./MigrationStatusBar";
 import { RecommendationsPanel } from "./RecommendationsPanel";
 import { TimelinePanel } from "./TimelinePanel";
 import { AiPlanner } from "./AiPlanner";
+import { ConfidencePanel } from "../ConfidencePanel"
 
 interface CommandCenterProps {
   data: AnalyzeResponse;
@@ -155,6 +156,7 @@ export function CommandCenter({ data }: CommandCenterProps) {
         <div className="space-y-6">
           <MigrationStatusBar status={migrationStatus} />
           <MetricsOverview compatibilityScore={compatibilityScore} metrics={metrics} explainability={data.explainability}/>
+          <ConfidencePanel confidence={data.confidence} />
           <div className="grid gap-6 xl:grid-cols-2">
             <BlockersPanel blockers={blockers} />
             <RecommendationsPanel recommendations={recommendations} />

@@ -132,8 +132,11 @@ export interface ConfidenceItem {
 export interface Confidence {
   cuda: ConfidenceItem;
   dependencies: ConfidenceItem;
-  compatibility: ConfidenceItem;
   docker: ConfidenceItem;
+  compatibility: ConfidenceItem;
+  recommendations: ConfidenceItem;
+  ai_summary: ConfidenceItem;
+  overall: ConfidenceItem;
 }
 
 export interface AnalyzeError {

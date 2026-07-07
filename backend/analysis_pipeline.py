@@ -88,7 +88,6 @@ def run_analysis_pipeline(
     if progress_callback:
         progress_callback("analyzing")
     compatibility = evaluate_compatibility(findings)
-    confidence = build_confidence(findings, compatibility)
     findings["compatibility"] = {
         "score": compatibility["score"],
         "tier": compatibility["tier"],
@@ -165,6 +164,13 @@ def run_analysis_pipeline(
         "aiUsed": ai_used,
         "aiProvider": ai_provider,
     }
+
+    confidence = build_confidence(
+    findings=findings,
+    compatibility=compatibility,
+    recommendations=recommendations,
+    ai_used=ai_used,
+)
 
     migration_status = _build_migration_status()
     explainability = _build_explainability(compatibility, findings)

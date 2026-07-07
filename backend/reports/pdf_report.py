@@ -1485,13 +1485,13 @@ def generate_pdf(
     ]
 
     preferred_order = [
-        "cuda",
-        "dependencies",
-        "docker",
-        "compatibility",
-        "recommendations",
-        "aiSummary",
-        "overall",
+    "cuda",
+    "dependencies",
+    "docker",
+    "compatibility",
+    "recommendations",
+    "ai_summary",
+    "overall",
     ]
 
     for key in preferred_order:
@@ -1504,16 +1504,8 @@ def generate_pdf(
         confidence_rows.append(
             [
                 key.replace("_", " ").title(),
-                str(
-                    value.get(
-                        "score",
-                        "-",
-                    )
-                ),
-                value.get(
-                    "reason",
-                    "-",
-                ),
+                f"{value.get('score', '-')} ({str(value.get('value', '')).title()})",
+                value.get("reason", "-"),
             ]
         )
 
