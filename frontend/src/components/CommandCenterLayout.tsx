@@ -15,6 +15,7 @@ interface CommandCenterLayoutProps {
 
 const NAV: { id: CommandCenterSection; label: string }[] = [
   { id: "overview", label: "Overview" },
+  // { id:"workspace", label:"Migration Workspace" },
   { id: "ai", label: "AI Planner" },
   { id: "history", label: "History" },
   { id: "downloads", label: "Downloads" },

@@ -92,7 +92,7 @@ export function CommandCenter({ data }: CommandCenterProps) {
       sidebarFooter={<AnalysisHistory currentId={data.analysis_id} compact />}
     >
       <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="flex-1">
           <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
             Migration Command Center
           </p>
@@ -105,6 +105,31 @@ export function CommandCenter({ data }: CommandCenterProps) {
           >
             {repoUrl}
           </a>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link
+                href={`/workspace/${data.analysis_id}`}
+                className="rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-red-500"
+              >
+                Open Migration Workspace
+              </Link>
+              <a
+                href={reportHtmlUrl(data.analysis_id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-zinc-700 px-5 py-2 text-sm hover:border-zinc-500"
+              >
+                HTML Report
+              </a>
+
+              <a
+                href={exportAnalysisJsonUrl(data.analysis_id)}
+                download
+                className="rounded-lg border border-zinc-700 px-5 py-2 text-sm hover:border-zinc-500"
+              >
+                Export JSON
+              </a>
+          </div>
         </div>
         {data.artifacts && <AiProviderBadge artifacts={data.artifacts} />}
       </header>

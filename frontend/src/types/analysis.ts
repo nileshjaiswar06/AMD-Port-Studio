@@ -222,3 +222,33 @@ export interface MigrationStatus {
   migrate: boolean; validate: boolean; benchmark: boolean;
   productionReady: boolean; maintain: boolean;
 }
+
+export interface ChecklistItem {
+  id: string;
+  completed: boolean;
+}
+
+export interface WorkspaceResponse {
+  analysis: AnalyzeResponse;
+  checklist: ChecklistItem[];
+  workspace: {
+    tabs: string[];
+  };
+}
+
+export interface PatchSuggestion {
+  id: string;
+  title: string;
+  type: string;
+  before: string;
+  after: string;
+}
+
+export interface PatchResponse {
+  patches: PatchSuggestion[];
+}
+
+export interface ChatResponse {
+  response: string;
+  stub: boolean;
+}

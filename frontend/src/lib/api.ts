@@ -3,6 +3,10 @@ import type {
   AnalyzeResponse,
   AnalysisJobStatus,
   AnalysisSummary,
+  WorkspaceResponse,
+  ChecklistItem,
+  PatchResponse,
+  ChatResponse,
 } from "@/types/analysis";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -162,6 +166,77 @@ export async function checkApiHealth(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function getWorkspace( analysisId: string ): Promise<WorkspaceResponse> {
+  const response = await fetch(
+    `${API_URL}/api/workspace/${analysisId}`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    await parseError(response);
+  }
+
+  return response.json();
+}
+
+export async function saveChecklist(analysisId: string, items: ChecklistItem[]): Promise<ChecklistItem[]> {
+  const response = await fetch(
+    `${API_URL}/api/analyses/${analysisId}/checklist`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    await parseError(response);
+  }
+
+  const data = await response.json();
+
+  return data.checklist;
+}
+
+export async function getPatchSuggestions(analysisId: string): Promise<PatchResponse> {
+  const response = await fetch(
+    `${API_URL}/api/analyses/${analysisId}/patches`,
+  );
+
+  if (!response.ok) {
+    await parseError(response);
+  }
+
+  return response.json();
+}
+
+export async function chatWorkspace(analysisId: string, message: string): Promise<ChatResponse> {
+  const response = await fetch(
+    `${API_URL}/api/analyses/${analysisId}/chat`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    await parseError(response);
+  }
+
+  return response.json();
 }
 
 export { API_URL };
