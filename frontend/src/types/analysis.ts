@@ -241,8 +241,14 @@ export interface PatchSuggestion {
   id: string;
   title: string;
   type: string;
+  reason: string;
+  confidence: string;
+  difficulty: string;
   before: string;
   after: string;
+  diff: string;
+  files: string[];
+  references: string[];
 }
 
 export interface PatchResponse {
