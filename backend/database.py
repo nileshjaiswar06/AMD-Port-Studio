@@ -12,6 +12,9 @@ _NEW_ANALYSIS_COLUMNS = (
     ("blockers_json", "TEXT"),
     ("recommendations_json", "TEXT"),
     ("migration_status_json", "TEXT"),
+    ("checklist_json", "TEXT"),
+    ("notes_json", "TEXT"),
+    ("workspace_state_json", "TEXT"),
 )
 
 
@@ -108,9 +111,10 @@ def save_full_analysis(db_path: Path, payload: dict) -> str:
             id, repository_name, repository_url, file_count, files_skipped,
             languages_json, created_at, project_slug, source_type,
             full_response_json, metrics_json, blockers_json,
-            recommendations_json, migration_status_json
+            recommendations_json, migration_status_json, checklist_json,
+            notes_json, workspace_state_json
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             analysis_id,
@@ -131,6 +135,9 @@ def save_full_analysis(db_path: Path, payload: dict) -> str:
                 or payload.get("migration_status")
                 or {}
             ),
+            json.dumps([]),          # checklist_json
+            json.dumps({}),          # notes_json
+            json.dumps({}),          # workspace_state_json
         ),
     )
 
@@ -253,3 +260,38 @@ def get_analysis(db_path: Path, analysis_id: str) -> dict | None:
 
 def get_analysis_export(db_path: Path, analysis_id: str) -> dict | None:
     return get_analysis(db_path, analysis_id)
+
+def save_checklist(db_path: Path, analysis_id: str, checklist: list[dict],) -> None:
+    conn = get_connection(db_path)
+    conn.execute(
+        """
+        UPDATE analyses
+        SET checklist_json = ?
+        WHERE id = ?
+        """,
+        (
+            json.dumps(checklist),
+            analysis_id,
+        ),
+    )
+
+    conn.commit()
+    conn.close()
+
+def get_checklist(db_path: Path, analysis_id: str,) -> list[dict]:
+    conn = get_connection(db_path)
+    row = conn.execute(
+        """
+        SELECT checklist_json
+        FROM analyses
+        WHERE id = ?
+        """,
+        (analysis_id,),
+    ).fetchone()
+
+    conn.close()
+
+    if row is None:
+        return []
+
+    return json.loads(row["checklist_json"] or "[]")

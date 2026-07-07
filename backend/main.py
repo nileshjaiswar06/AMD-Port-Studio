@@ -25,13 +25,21 @@ from database import (
     init_db,
     list_analyses,
     save_full_analysis,
+    get_checklist,
+    save_checklist,
 )
+from migration_workspace.patches import generate_patch_suggestions
 
 app = FastAPI(title="AMD Port Studio API", version="0.1.0")
 
 GITHUB_OWNER_REPO_RE = re.compile(r"^[\w.-]+$")
 SLUG_RE = re.compile(r"[^a-zA-Z0-9._-]+")
 
+class ChatRequest(BaseModel):
+    message: str
+
+class ChecklistUpdateRequest(BaseModel):
+    items: list[dict]
 
 class AnalyzeRequest(BaseModel):
     github_url: HttpUrl
@@ -482,6 +490,55 @@ def analysis_report_html(analysis_id: str):
         },
     )
 
+@app.get("/api/workspace/{analysis_id}")
+def workspace(analysis_id: str):
+    db_path = Path(settings.database_path)
+    analysis = get_analysis(db_path, analysis_id)
+
+    if analysis is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis not found",
+        )
+
+    return {
+        "analysis": analysis,
+        "checklist": get_checklist(
+            db_path,
+            analysis_id,
+        ),
+        "workspace": {
+            "tabs": [
+                "overview",
+                "compatibility",
+                "dependencies",
+                "checklist",
+                "docker",
+                "deploy",
+                "patches",
+                "artifacts",
+                "ai",
+            ]
+        },
+    }
+
+@app.get("/api/analyses/{analysis_id}/patches")
+def patch_suggestions(analysis_id: str):
+    analysis = get_analysis(
+        Path(settings.database_path),
+        analysis_id,
+    )
+
+    if analysis is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis not found",
+        )
+    return {
+        "patches": generate_patch_suggestions(
+            analysis
+        )
+    }
 
 @app.post("/api/analyze")
 def analyze(request: AnalyzeRequest):
@@ -541,3 +598,55 @@ async def analyze_zip(file: UploadFile = File(...)):
         remove_directory(extract_dir)
         if archive_path.exists():
             archive_path.unlink(missing_ok=True)
+
+@app.post("/api/analyses/{analysis_id}/chat")
+def workspace_chat(analysis_id: str, request: ChatRequest):
+    analysis = get_analysis(
+        Path(settings.database_path),
+        analysis_id,
+    )
+
+    if analysis is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis not found",
+        )
+
+    compatibility = (
+        analysis.get("findings", {})
+        .get("compatibility", {})
+    )
+
+    repository = analysis.get("repository", {})
+
+    return {
+        "response": (
+            f"This repository ({repository.get('name')}) "
+            f"has a compatibility score of "
+            f"{compatibility.get('score')}%. "
+            "Repository-grounded AI chat will be enabled on Day 10."
+        ),
+        "stub": True,
+    }
+
+@app.patch("/api/analyses/{analysis_id}/checklist")
+def update_checklist(analysis_id: str, request: ChecklistUpdateRequest):
+    if get_analysis(Path(settings.database_path), analysis_id) is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis not found",
+        )
+
+    save_checklist(
+        Path(settings.database_path),
+        analysis_id,
+        request.items,
+    )
+
+    return {
+        "analysis_id": analysis_id,
+        "checklist": get_checklist(
+            Path(settings.database_path),
+            analysis_id,
+        ),
+    }
