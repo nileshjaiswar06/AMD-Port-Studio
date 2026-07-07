@@ -16,6 +16,7 @@ from parsers.dependencies import extract_dependencies
 from parsers.docker_analyzer import analyze_docker_files
 from reports.html_report import render_html_report
 from scanner.indexer import index_repository
+from graph.dependency_graph import build_dependency_graph
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,11 @@ def run_analysis_pipeline(
         "effort_score": compatibility["effort_score"],
         "components": compatibility["components"],
     }
+
+    graph = build_dependency_graph(
+    findings=findings,
+    compatibility=compatibility,
+    )
 
     blockers = build_blockers(findings, compatibility)
     recommendations = build_recommendations(findings, compatibility, blockers)
@@ -191,4 +197,5 @@ def run_analysis_pipeline(
         "migrationStatus": migration_status,
         "explainability": explainability,
         "_db_scan": {**scan, "files": all_files},
+        "graph": graph,
     }

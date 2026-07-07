@@ -120,6 +120,7 @@ export interface AnalyzeResponse {
   recommendations?: Recommendation[];
   explainability?: Explainability;
   confidence?: Confidence;
+  graph?: DependencyGraph;
 }
 
 export interface ConfidenceItem {
@@ -251,4 +252,44 @@ export interface PatchResponse {
 export interface ChatResponse {
   response: string;
   stub: boolean;
+}
+
+export interface GraphNode {
+  id: string;
+
+  type?: string;
+
+  position: {
+    x: number;
+    y: number;
+  };
+
+  data:{
+
+    label:string
+    
+    status:string
+    
+    color:string
+    
+    alternative?:string
+    
+    difficulty?:string
+    
+    notes?:string
+    
+    }
+
+  style?: Record<string, unknown>;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
+export interface DependencyGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
 }
