@@ -1,0 +1,222 @@
+[
+  {
+    "id": "tensorrt",
+    "title": "TensorRT",
+    "category": "library",
+    "keywords": ["tensorrt", "cuda", "inference", "engine", "nvidia"],
+    "question": "Why is TensorRT unsupported?",
+    "answer": "TensorRT depends on NVIDIA CUDA runtime and proprietary NVIDIA GPU optimizations. It cannot execute natively on AMD GPUs. Convert models to ONNX and use ONNX Runtime with ROCm for inference.",
+    "alternative": "ONNX Runtime ROCm",
+    "difficulty": "medium",
+    "references": ["ROCm Documentation", "ONNX Runtime"]
+  },
+  {
+    "id": "torch_cuda",
+    "title": "torch.cuda",
+    "category": "framework",
+    "keywords": ["torch", "torch.cuda", "pytorch", "cuda"],
+    "question": "How do I migrate torch.cuda?",
+    "answer": "Most PyTorch projects require only installing the ROCm-enabled PyTorch build. The torch.cuda namespace is retained in ROCm PyTorch for compatibility.",
+    "alternative": "ROCm PyTorch",
+    "difficulty": "easy",
+    "references": ["PyTorch ROCm"]
+  },
+  {
+    "id": "cuda_malloc",
+    "title": "cudaMalloc",
+    "category": "cuda-api",
+    "keywords": ["cudaMalloc", "memory", "allocation"],
+    "question": "How do I replace cudaMalloc?",
+    "answer": "Replace cudaMalloc with hipMalloc when migrating CUDA code to HIP. The APIs are intentionally very similar.",
+    "alternative": "hipMalloc",
+    "difficulty": "easy",
+    "references": ["HIP Porting Guide"]
+  },
+  {
+    "id": "cuda_memcpy",
+    "title": "cudaMemcpy",
+    "category": "cuda-api",
+    "keywords": ["cudaMemcpy", "memory", "copy"],
+    "question": "How do I replace cudaMemcpy?",
+    "answer": "Replace cudaMemcpy with hipMemcpy. HIP preserves almost identical semantics.",
+    "alternative": "hipMemcpy",
+    "difficulty": "easy",
+    "references": ["HIP Runtime"]
+  },
+  {
+    "id": "cuda_free",
+    "title": "cudaFree",
+    "category": "cuda-api",
+    "keywords": ["cudaFree", "memory"],
+    "question": "How do I replace cudaFree?",
+    "answer": "Replace cudaFree with hipFree.",
+    "alternative": "hipFree",
+    "difficulty": "easy",
+    "references": ["HIP Runtime"]
+  },
+  {
+    "id": "cuda_stream",
+    "title": "cudaStreamCreate",
+    "category": "cuda-api",
+    "keywords": ["stream", "cudaStreamCreate"],
+    "question": "How do I replace CUDA streams?",
+    "answer": "Replace cudaStreamCreate with hipStreamCreate.",
+    "alternative": "hipStreamCreate",
+    "difficulty": "easy",
+    "references": ["HIP Runtime"]
+  },
+  {
+    "id": "cuda_sync",
+    "title": "cudaDeviceSynchronize",
+    "category": "cuda-api",
+    "keywords": ["cudaDeviceSynchronize", "synchronize"],
+    "question": "How do I synchronize GPU execution?",
+    "answer": "Replace cudaDeviceSynchronize with hipDeviceSynchronize.",
+    "alternative": "hipDeviceSynchronize",
+    "difficulty": "easy",
+    "references": ["HIP Runtime"]
+  },
+  {
+    "id": "hipify",
+    "title": "HIPIFY",
+    "category": "migration",
+    "keywords": ["hipify", "migration", "cuda"],
+    "question": "What is HIPIFY?",
+    "answer": "HIPIFY automatically converts much of CUDA source code into HIP-compatible code, reducing manual migration effort.",
+    "alternative": "hipify-perl / hipify-clang",
+    "difficulty": "easy",
+    "references": ["HIPIFY Documentation"]
+  },
+  {
+    "id": "cudnn",
+    "title": "cuDNN",
+    "category": "library",
+    "keywords": ["cudnn", "deep learning"],
+    "question": "How do I replace cuDNN?",
+    "answer": "AMD provides MIOpen as the deep learning acceleration library comparable to cuDNN.",
+    "alternative": "MIOpen",
+    "difficulty": "medium",
+    "references": ["MIOpen"]
+  },
+  {
+    "id": "cublas",
+    "title": "cuBLAS",
+    "category": "library",
+    "keywords": ["cublas", "blas", "linear algebra"],
+    "question": "How do I replace cuBLAS?",
+    "answer": "Replace cuBLAS with rocBLAS for GPU-accelerated BLAS operations.",
+    "alternative": "rocBLAS",
+    "difficulty": "medium",
+    "references": ["rocBLAS"]
+  },
+  {
+    "id": "cufft",
+    "title": "cuFFT",
+    "category": "library",
+    "keywords": ["cufft", "fft"],
+    "question": "How do I replace cuFFT?",
+    "answer": "Use rocFFT as the AMD equivalent of cuFFT.",
+    "alternative": "rocFFT",
+    "difficulty": "medium",
+    "references": ["rocFFT"]
+  },
+  {
+    "id": "cusparse",
+    "title": "cuSPARSE",
+    "category": "library",
+    "keywords": ["cusparse", "sparse"],
+    "question": "How do I replace cuSPARSE?",
+    "answer": "AMD provides rocSPARSE for sparse matrix operations.",
+    "alternative": "rocSPARSE",
+    "difficulty": "medium",
+    "references": ["rocSPARSE"]
+  },
+  {
+    "id": "nccl",
+    "title": "NCCL",
+    "category": "library",
+    "keywords": ["nccl", "distributed", "multi gpu"],
+    "question": "How do I replace NCCL?",
+    "answer": "Use RCCL for distributed GPU communication on AMD hardware.",
+    "alternative": "RCCL",
+    "difficulty": "medium",
+    "references": ["RCCL"]
+  },
+  {
+    "id": "cupy",
+    "title": "CuPy",
+    "category": "python",
+    "keywords": ["cupy", "numpy", "cuda"],
+    "question": "Does CuPy work on AMD?",
+    "answer": "CuPy is CUDA-oriented. Evaluate HIP-compatible builds or migrate critical GPU code using HIP or ROCm-enabled frameworks.",
+    "alternative": "HIP / ROCm",
+    "difficulty": "hard",
+    "references": ["HIP Documentation"]
+  },
+  {
+    "id": "docker",
+    "title": "NVIDIA Docker",
+    "category": "docker",
+    "keywords": ["docker", "nvidia", "cuda", "container"],
+    "question": "How do I migrate Docker?",
+    "answer": "Replace NVIDIA CUDA base images with ROCm images and expose AMD GPU devices such as /dev/kfd and /dev/dri.",
+    "alternative": "rocm/pytorch",
+    "difficulty": "medium",
+    "references": ["ROCm Docker"]
+  },
+  {
+    "id": "amd_cloud",
+    "title": "AMD Developer Cloud",
+    "category": "deployment",
+    "keywords": ["amd cloud", "deployment"],
+    "question": "How do I deploy on AMD Developer Cloud?",
+    "answer": "Provision a ROCm-enabled instance, deploy the generated ROCm container, validate GPU availability, and benchmark workloads.",
+    "alternative": "AMD Developer Cloud",
+    "difficulty": "medium",
+    "references": ["AMD Developer Cloud"]
+  },
+  {
+    "id": "rocm_install",
+    "title": "ROCm Installation",
+    "category": "deployment",
+    "keywords": ["rocm", "install"],
+    "question": "How do I install ROCm?",
+    "answer": "Install ROCm drivers, verify with rocm-smi, install ROCm-enabled frameworks, and validate GPU visibility.",
+    "alternative": "ROCm",
+    "difficulty": "easy",
+    "references": ["ROCm Documentation"]
+  },
+  {
+    "id": "rocm_validation",
+    "title": "Validation",
+    "category": "validation",
+    "keywords": ["validation", "benchmark", "gpu"],
+    "question": "How do I validate migration?",
+    "answer": "Run functional tests, compare outputs with CUDA, benchmark inference or training, and monitor GPU utilization.",
+    "alternative": "Benchmark",
+    "difficulty": "medium",
+    "references": ["ROCm Documentation"]
+  },
+  {
+    "id": "benchmark",
+    "title": "Benchmarking",
+    "category": "performance",
+    "keywords": ["benchmark", "performance"],
+    "question": "How should I benchmark AMD migration?",
+    "answer": "Measure latency, throughput, GPU memory usage, and compare results against the original CUDA implementation.",
+    "alternative": "ROCm Benchmark",
+    "difficulty": "medium",
+    "references": ["ROCm Documentation"]
+  },
+  {
+    "id": "rocm_smi",
+    "title": "rocm-smi",
+    "category": "tool",
+    "keywords": ["rocm-smi", "gpu"],
+    "question": "How do I verify AMD GPU availability?",
+    "answer": "Use rocm-smi to inspect GPU health, utilization, temperature, memory usage, and driver status.",
+    "alternative": "rocm-smi",
+    "difficulty": "easy",
+    "references": ["ROCm Documentation"]
+  }
+]

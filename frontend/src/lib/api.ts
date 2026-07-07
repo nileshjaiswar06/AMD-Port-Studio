@@ -239,4 +239,36 @@ export async function chatWorkspace(analysisId: string, message: string): Promis
   return response.json();
 }
 
+export interface AssistantRequest {
+  analysis_id: string;
+  question: string;
+}
+
+export interface AssistantResponse {
+  answer: string;
+  sources: string[];
+}
+
+export async function askAssistant(
+  request: AssistantRequest,
+): Promise<AssistantResponse> {
+
+  const response = await fetch(
+      `${API_URL}/api/assistant`,
+      {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+          body: JSON.stringify(request),
+      },
+  );
+
+  if (!response.ok) {
+      throw new Error("Assistant request failed");
+  }
+
+  return response.json();
+}
+
 export { API_URL };

@@ -8,6 +8,7 @@ from ai.schema import AIAdvisorOutput
 from config import settings
 from ai.utils import extract_json
 from ai.system_prompt import SYSTEM_PROMPT
+from ai.chat_schema import ChatAssistantOutput
 
 
 class GeminiProvider:
@@ -29,3 +30,28 @@ class GeminiProvider:
         )
         raw = extract_json(response.text or "{}")
         return AIAdvisorOutput.model_validate(raw)
+
+    def chat(self, context: str) -> str:
+        response = self.client.models.generate_content(
+        model=self.model,
+        contents=context,
+        config=types.GenerateContentConfig(
+            temperature=0.2,
+        ),
+    )
+        if response.text is None:
+                return ""
+        return response.text
+    
+    def structured_chat( self, context: str ) -> ChatAssistantOutput:
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=context,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                response_mime_type="application/json",
+        ),
+    )
+
+        raw = extract_json(response.text or "{}")
+        return ChatAssistantOutput.model_validate(raw)

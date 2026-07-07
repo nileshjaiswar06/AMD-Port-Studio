@@ -33,7 +33,7 @@ export function AiPlanner({ data }: AiPlannerProps) {
       <MigrationPlan data={data} />
       <Timeline data={data} />
       <RiskAnalysis data={data} />
-      <PromptCard />
+      <PromptCard analysisId={data.analysis_id} />
     </section>
   );
 }

@@ -30,6 +30,9 @@ from database import (
 )
 from migration_workspace.patches import generate_patch_suggestions
 
+from api.assistant_models import ( AssistantRequest, AssistantResponse )
+from ai.provider import run_rag_assistant
+
 app = FastAPI(title="AMD Port Studio API", version="0.1.0")
 
 GITHUB_OWNER_REPO_RE = re.compile(r"^[\w.-]+$")
@@ -598,36 +601,6 @@ async def analyze_zip(file: UploadFile = File(...)):
         if archive_path.exists():
             archive_path.unlink(missing_ok=True)
 
-@app.post("/api/analyses/{analysis_id}/chat")
-def workspace_chat(analysis_id: str, request: ChatRequest):
-    analysis = get_analysis(
-        Path(settings.database_path),
-        analysis_id,
-    )
-
-    if analysis is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Analysis not found",
-        )
-
-    compatibility = (
-        analysis.get("findings", {})
-        .get("compatibility", {})
-    )
-
-    repository = analysis.get("repository", {})
-
-    return {
-        "response": (
-            f"This repository ({repository.get('name')}) "
-            f"has a compatibility score of "
-            f"{compatibility.get('score')}%. "
-            "Repository-grounded AI chat will be enabled on Day 10."
-        ),
-        "stub": True,
-    }
-
 @app.post("/api/analyses/{analysis_id}/patches")
 def patches(analysis_id: str):
     analysis = get_analysis(
@@ -643,6 +616,38 @@ def patches(analysis_id: str):
     return {
         "patches": generate_patch_suggestions(analysis)
     }
+
+@app.post("/api/assistant", response_model=AssistantResponse)
+def assistant_chat( request: AssistantRequest ):
+    analysis = get_analysis(
+    Path(settings.database_path),
+    request.analysis_id,
+    )
+    if analysis is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis not found",
+        )
+
+    result = run_rag_assistant(
+        question=request.question,
+        analysis=analysis,
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Assistant unavailable",
+        )
+
+    return AssistantResponse(
+    answer=result["answer"],
+    recommendation=result["recommendation"],
+    repositoryImpact=result["repositoryImpact"],
+    nextSteps=result["nextSteps"],
+    confidence=result["confidence"],
+    sources=result["sources"],
+)
 
 @app.patch("/api/analyses/{analysis_id}/checklist")
 def update_checklist(analysis_id: str, request: ChecklistUpdateRequest):

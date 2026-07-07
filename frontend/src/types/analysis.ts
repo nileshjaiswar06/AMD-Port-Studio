@@ -256,30 +256,19 @@ export interface ChatResponse {
 
 export interface GraphNode {
   id: string;
-
   type?: string;
-
   position: {
     x: number;
     y: number;
   };
-
   data:{
-
     label:string
-    
-    status:string
-    
+    status:string    
     color:string
-    
     alternative?:string
-    
     difficulty?:string
-    
     notes?:string
-    
     }
-
   style?: Record<string, unknown>;
 }
 
@@ -292,4 +281,18 @@ export interface GraphEdge {
 export interface DependencyGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
+}
+
+export interface AssistantRequest {
+  analysis_id: string;
+  question: string;
+}
+
+export interface AssistantResponse {
+  answer: string;
+  recommendation: string;
+  repositoryImpact: string;
+  nextSteps: string[];
+  confidence: string;
+  sources: string[];
 }

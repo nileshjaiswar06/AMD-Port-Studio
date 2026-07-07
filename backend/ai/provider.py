@@ -7,16 +7,22 @@ from config import settings
 
 def get_ai_provider():
     provider = settings.ai_provider.lower()
+
     if provider == "gemini":
         try:
             return GeminiProvider()
-        except (ValueError, Exception):
+        except Exception as e:
+            print(f"[AI] Failed to initialize Gemini provider: {e}")
             return None
+
     if provider == "fireworks":
         try:
             return FireworksProvider()
-        except (ValueError, Exception):
+        except Exception as e:
+            print(f"[AI] Failed to initialize Fireworks provider: {e}")
             return None
+
+    print(f"[AI] Unknown provider: {provider}")
     return None
 
 
@@ -36,4 +42,50 @@ def run_migration_advisor(
         )
         return provider.advise(context)
     except Exception:
+        return None
+
+from knowledge.rag import build_rag_context
+
+
+import traceback
+
+def run_rag_assistant(
+    question: str,
+    analysis: dict,
+):
+    print("AI Provider:", settings.ai_provider)
+    print("Gemini Key Present:", bool(settings.gemini_api_key))
+    print("Fireworks Key Present:", bool(settings.fireworks_api_key))
+    try:
+
+        provider = get_ai_provider()
+
+        if provider is None:
+            print("No AI provider configured.")
+            return None
+
+        context, chunks = build_rag_context(
+            question,
+            analysis,
+        )
+
+        result = provider.structured_chat(context)
+
+        return {
+            "answer": result.answer,
+            "recommendation": result.recommendation,
+            "repositoryImpact": result.repositoryImpact,
+            "nextSteps": result.nextSteps,
+            "confidence": result.confidence,
+            "sources": [
+                chunk["title"]
+                for chunk in chunks
+            ],
+        }
+
+    except Exception as e:
+        print("=" * 80)
+        print("RAG ERROR")
+        traceback.print_exc()
+        print("=" * 80)
         return None
