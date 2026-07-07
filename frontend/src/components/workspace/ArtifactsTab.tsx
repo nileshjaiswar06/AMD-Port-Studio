@@ -1,6 +1,6 @@
 "use client";
 
-import { exportAnalysisJsonUrl, reportHtmlUrl } from "@/lib/api";
+import { exportAnalysisJsonUrl, reportHtmlUrl, downloadPdf } from "@/lib/api";
 import type { AnalyzeResponse } from "@/types/analysis";
 
 interface Props {
@@ -44,6 +44,13 @@ export function ArtifactsTab({ analysis }: Props) {
       >
         Export JSON
       </a>
+
+      <button
+        onClick={() => downloadPdf(analysis.analysis_id)}
+        className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition-all duration-200 hover:border-red-500 hover:shadow-lg hover:shadow-red-500/10 hover:border-blue-500"
+      >
+        Download PDF
+      </button>
     </div>
   );
 }

@@ -32,6 +32,8 @@ from migration_workspace.patches import generate_patch_suggestions
 
 from api.assistant_models import ( AssistantRequest, AssistantResponse )
 from ai.provider import run_rag_assistant
+from fastapi.responses import StreamingResponse
+from reports.pdf_report import generate_pdf
 
 app = FastAPI(title="AMD Port Studio API", version="0.1.0")
 
@@ -541,6 +543,43 @@ def patch_suggestions(analysis_id: str):
     return {
         "patches": generate_patch_suggestions(analysis)
     }
+
+@app.get("/api/analyses/{analysis_id}/report.pdf")
+def analysis_report_pdf(analysis_id: str):
+
+    analysis = get_analysis(
+        Path(settings.database_path),
+        analysis_id,
+    )
+
+    if analysis is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis not found",
+        )
+
+    pdf = generate_pdf(analysis)
+
+    repository = analysis.get("repository", {})
+    repo_name = repository.get("name", "analysis")
+
+    safe_name = re.sub(
+        r"[^A-Za-z0-9_-]+",
+        "_",
+        repo_name,
+    ).strip("_")
+
+    if not safe_name:
+        safe_name = "analysis"
+
+    return StreamingResponse(
+        pdf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition":
+                f'attachment; filename="{safe_name}.pdf"'
+        },
+    )
 
 @app.post("/api/analyze")
 def analyze(request: AnalyzeRequest):

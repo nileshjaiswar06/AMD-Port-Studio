@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { AnalyzeResponse } from "@/types/analysis";
-import { exportAnalysisJsonUrl, reportHtmlUrl } from "@/lib/api";
+import { exportAnalysisJsonUrl, reportHtmlUrl, downloadPdf } from "@/lib/api";
 import { AiProviderBadge } from "./AiProviderBadge";
 import { AnalysisHistory } from "./AnalysisHistory";
 import { BlockersPanel } from "./BlockersPanel";
@@ -129,6 +129,13 @@ export function CommandCenter({ data }: CommandCenterProps) {
               >
                 Export JSON
               </a>
+
+              <button
+                onClick={() => downloadPdf(data.analysis_id)}
+                className="rounded-lg border border-zinc-700 px-5 py-2 text-sm hover:border-zinc-500 cursor-pointer"
+              >
+                Download PDF
+              </button>
           </div>
         </div>
         {data.artifacts && <AiProviderBadge artifacts={data.artifacts} />}
@@ -219,6 +226,12 @@ export function CommandCenter({ data }: CommandCenterProps) {
                 Open HTML migration report
               </a>
             </li>
+            <button
+              onClick={() => downloadPdf(data.analysis_id)}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 text-sm text-zinc-200 hover:border-zinc-600 cursor-pointer"
+            >
+              Download PDF migration report
+            </button>
           </ul>
         </section>
       )}

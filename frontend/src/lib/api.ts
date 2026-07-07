@@ -249,10 +249,7 @@ export interface AssistantResponse {
   sources: string[];
 }
 
-export async function askAssistant(
-  request: AssistantRequest,
-): Promise<AssistantResponse> {
-
+export async function askAssistant( request: AssistantRequest ): Promise<AssistantResponse> {
   const response = await fetch(
       `${API_URL}/api/assistant`,
       {
@@ -267,8 +264,16 @@ export async function askAssistant(
   if (!response.ok) {
       throw new Error("Assistant request failed");
   }
-
   return response.json();
+}
+
+export function downloadPdf(
+  analysisId: string,
+) {
+  window.open(
+    `${API_URL}/api/analyses/${analysisId}/report.pdf`,
+    "_blank",
+  );
 }
 
 export { API_URL };

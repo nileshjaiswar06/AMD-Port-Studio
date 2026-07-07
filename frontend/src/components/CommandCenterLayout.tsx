@@ -15,7 +15,6 @@ interface CommandCenterLayoutProps {
 
 const NAV: { id: CommandCenterSection; label: string }[] = [
   { id: "overview", label: "Overview" },
-  // { id:"workspace", label:"Migration Workspace" },
   { id: "ai", label: "AI Planner" },
   { id: "history", label: "History" },
   { id: "downloads", label: "Downloads" },
@@ -44,7 +43,7 @@ export function CommandCenterLayout({
               key={item.id}
               type="button"
               onClick={() => onSectionChange(item.id)}
-              className={`whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-medium transition cursor-pointer ${
                 activeSection === item.id
                   ? "bg-zinc-800 text-white"
                   : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200"
