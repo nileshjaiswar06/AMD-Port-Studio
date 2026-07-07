@@ -534,10 +534,9 @@ def patch_suggestions(analysis_id: str):
             status_code=404,
             detail="Analysis not found",
         )
+
     return {
-        "patches": generate_patch_suggestions(
-            analysis
-        )
+        "patches": generate_patch_suggestions(analysis)
     }
 
 @app.post("/api/analyze")
@@ -627,6 +626,22 @@ def workspace_chat(analysis_id: str, request: ChatRequest):
             "Repository-grounded AI chat will be enabled on Day 10."
         ),
         "stub": True,
+    }
+
+@app.post("/api/analyses/{analysis_id}/patches")
+def patches(analysis_id: str):
+    analysis = get_analysis(
+        Path(settings.database_path),
+        analysis_id,
+    )
+    if analysis is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Analysis not found",
+        )
+
+    return {
+        "patches": generate_patch_suggestions(analysis)
     }
 
 @app.patch("/api/analyses/{analysis_id}/checklist")

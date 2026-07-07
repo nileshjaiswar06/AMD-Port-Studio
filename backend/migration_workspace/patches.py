@@ -15,7 +15,9 @@ def generate_patch_suggestions(analysis: dict) -> list[dict]:
             }
         )
 
-    if cuda.get("api_hit_count", 0):
+    summary = cuda.get("summary", {})
+    
+    if summary.get("api_hit_count", 0):
         patches.append(
             {
                 "id": "cuda-api",
