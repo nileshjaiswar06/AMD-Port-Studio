@@ -34,6 +34,7 @@ from api.assistant_models import ( AssistantRequest, AssistantResponse )
 from ai.provider import run_rag_assistant
 from fastapi.responses import StreamingResponse
 from reports.pdf_report import generate_pdf
+from fastapi.responses import FileResponse
 
 app = FastAPI(title="AMD Port Studio API", version="0.1.0")
 
@@ -579,6 +580,20 @@ def analysis_report_pdf(analysis_id: str):
             "Content-Disposition":
                 f'attachment; filename="{safe_name}.pdf"'
         },
+    )
+
+@app.get("/api/benchmark/script")
+def benchmark_script():
+    script = (
+        Path(__file__).resolve().parent
+        / "benchmark"
+        / "run_rocm.sh"
+    )
+
+    return FileResponse(
+        path=script,
+        filename="run_rocm.sh",
+        media_type="application/x-sh",
     )
 
 @app.post("/api/analyze")

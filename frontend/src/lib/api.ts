@@ -276,4 +276,11 @@ export function downloadPdf(
   );
 }
 
+export function downloadBenchmarkScript() {
+  window.open(
+    `${API_URL}/api/benchmark/script`,
+    "_blank",
+  );
+}
+
 export { API_URL };
