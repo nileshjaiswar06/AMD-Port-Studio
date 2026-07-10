@@ -1,0 +1,32 @@
+# Git
+.git
+.github
+.gitignore
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.pytest_cache
+backend/.venv
+
+# Node
+frontend/node_modules
+frontend/.next
+
+# IDE
+.vscode
+.idea
+
+# Environment
+.env
+.env.*
+
+# Runtime
+workspace
+data
+benchmarks
+
+# OS
+.DS_Store
+Thumbs.db

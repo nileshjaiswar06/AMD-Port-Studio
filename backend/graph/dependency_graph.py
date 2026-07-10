@@ -29,7 +29,15 @@ def build_dependency_graph(
     x = 0
     y = 0
 
-    def add_node(node_id: str, label: str, status: str = "unknown"):
+    def add_node(
+        node_id: str,
+        label: str,
+        status: str = "unknown",
+        *,
+        alternative: str = "",
+        difficulty: str = "Unknown",
+        notes: str = "No notes.",
+    ):
         nonlocal y
         if node_id in added_nodes:
             return
@@ -41,25 +49,12 @@ def build_dependency_graph(
             "type": "dependency",  # match ReactFlow nodeTypes
             "position": {"x": x, "y": y},
            "data":{
-
 "label":label,
-
 "status":status,
-
 "color":STATUS_COLOR.get(status),
-
-"alternative":component.get(
-    "alternative",""
-),
-
-"difficulty":component.get(
-    "difficulty","Unknown"
-),
-
-"notes":component.get(
-    "notes","No notes."
-)
-
+"alternative":alternative,
+"difficulty":difficulty,
+"notes":notes
 },
         })
 
@@ -113,7 +108,14 @@ def build_dependency_graph(
         label = component.get("label") or component.get("name") or node_id
         status = component.get("status", "unknown")
 
-        add_node(node_id, label, status)
+        add_node(
+            node_id,
+            label,
+            status,
+            alternative=component.get("alternative", ""),
+            difficulty=component.get("difficulty", "Unknown"),
+            notes=component.get("notes", "No notes."),
+        )
 
         component_type = component.get("type", "").lower()
         if component_type == "docker":
@@ -126,7 +128,14 @@ def build_dependency_graph(
         alternative = component.get("alternative")
         if alternative:
             alt_id = f"{node_id}-alternative"
-            add_node(alt_id, alternative, "supported")
+            add_node(
+                alt_id,
+                alternative,
+                "supported",
+                alternative="",
+                difficulty=component.get("difficulty", "Unknown"),
+                notes=f"Alternative for {label}.",
+            )
             add_edge(node_id, alt_id)
 
     return {"nodes": nodes, "edges": edges}

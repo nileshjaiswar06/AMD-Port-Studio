@@ -1,22 +1,30 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+    container_name: amd-port-backend
+    restart: unless-stopped
     ports:
       - "8000:8000"
+    environment:
+      AI_PROVIDER: ${AI_PROVIDER}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      FIREWORKS_API_KEY: ${FIREWORKS_API_KEY}
+      AMD_CLOUD_API_KEY: ${AMD_CLOUD_API_KEY}
+      DATABASE_PATH: /app/data/amd_port_studio.db
+      WORKSPACE_DIR: /app/workspace
+      CORS_ORIGINS: http://localhost:3000
     volumes:
       - ./workspace:/app/workspace
       - ./data:/app/data
-    environment:
-      - WORKSPACE_DIR=/app/workspace
-      - DATABASE_PATH=/app/data/amd_port_studio.db
-      - CORS_ORIGINS=http://localhost:3000
-
   frontend:
     build:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_URL: http://localhost:8000
-    ports:
-      - "3000:3000"
+    container_name: amd-port-frontend
     depends_on:
       - backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"

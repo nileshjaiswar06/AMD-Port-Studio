@@ -4,7 +4,6 @@ from ai.prompt_builder import build_advisor_context
 from ai.schema import AIAdvisorOutput
 from config import settings
 
-
 def get_ai_provider():
     provider = settings.ai_provider.lower()
 
@@ -42,7 +41,11 @@ def run_migration_advisor(
         )
         return provider.advise(context)
     except Exception:
-        return None
+        print("=" * 80)
+        print("AI MIGRATION ADVISOR ERROR")
+        traceback.print_exc()
+        print("=" * 80)
+        raise
 
 from knowledge.rag import build_rag_context
 
